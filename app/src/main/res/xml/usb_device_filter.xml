@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ADB interface -->
+    <usb-device class="255" subclass="66" protocol="1" />
+    <!-- Fastboot interface -->
+    <usb-device class="255" subclass="34" protocol="0" />
+    <!-- Generic Android device -->
+    <usb-device vendor-id="18" product-id="2076" />
+    <usb-device vendor-id="1137" product-id="1024" />
+</resources>

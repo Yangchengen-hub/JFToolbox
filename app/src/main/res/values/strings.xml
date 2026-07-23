@@ -1,4 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">极风工具箱</string>
+    <string name="app_subtitle">JFToolbox</string>
+    <string name="disclaimer_title">免责声明</string>
+    <string name="disclaimer_text">刷机、修改系统、调试设备等操作存在风险，可能导致设备变砖、数据丢失或失去保修。本软件仅供技术研究使用，作者不承担任何直接或间接后果。继续即表示您已了解并自行承担所有风险。</string>
+    <string name="disclaimer_agree">我已了解，继续</string>
+    <string name="disclaimer_exit">退出</string>
+    <string name="device_not_connected">未检测到设备</string>
+    <string name="device_connected">已连接：%1$s</string>
+    <string name="hotplug_tip">插入设备自动识别中…</string>
+    <string name="reboot_system">重启到系统</string>
+    <string name="reboot_recovery">重启到 Recovery</string>
+    <string name="reboot_bootloader">重启到 Bootloader</string>
+    <string name="reboot_9008">重启到 9008</string>
+    <string name="flash_verify">校验 ZIP 包…</string>
+    <string name="flash_start">开始刷入</string>
+    <string name="flash_done">刷入完成</string>
+    <string name="terminal_hint">输入 ADB 命令…</string>
+    <string name="download_hint">输入下载链接…</string>
+    <string name="freeze_pm_disable">冻结 (pm disable)</string>
+    <string name="freeze_pm_uninstall">移除 (pm uninstall)</string>
+    <string name="about_studio">极风工作室</string>
+    <string name="about_author">作者：诺言</string>
+    <string name="about_thanks">鸣谢</string>
+    <string name="about_contact">联系方式</string>
 </resources>

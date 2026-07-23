@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- 小米风格圆形主体 + 齿轮 -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M54,30 m-18,0 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0"/>
+    <path android:fillColor="#1A73E8"
+        android:pathData="M54,40 L57,46 L64,46 L58,50 L60,57 L54,53 L48,57 L50,50 L44,46 L51,46 Z"/>
+    <!-- 右侧齿轮 -->
+    <path android:fillColor="#FFFFFF" android:alpha="0.85"
+        android:pathData="M72,48 h4 v4 h-4 z M72,56 h4 v4 h-4 z M76,52 h4 v4 h-4 z M68,52 h4 v4 h-4 z"/>
+</vector>

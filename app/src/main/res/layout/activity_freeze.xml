@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/bg_glass" android:orientation="vertical" android:padding="20dp">
+
+    <TextView android:text="❄️ 智能冻结" android:textSize="22sp" android:textStyle="bold"/>
+    <TextView android:text="点击下方类别一键冻结对应组件" android:textSize="12sp" android:alpha="0.6"
+        android:layout_marginTop="4dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:layout_marginTop="16dp"/>
+
+</LinearLayout>

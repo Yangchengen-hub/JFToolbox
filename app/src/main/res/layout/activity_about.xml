@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/bg_glass" android:padding="20dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView android:text="ℹ️ 关于" android:textSize="22sp" android:textStyle="bold"/>
+
+        <com.google.android.material.card.MaterialCardView style="@style/JF.FeatureCard"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp">
+                <ImageView android:layout_width="72dp" android:layout_height="72dp"
+                    android:src="@drawable/ic_jf_logo" android:layout_gravity="center"/>
+                <TextView android:id="@+id/txtStudio" android:text="极风工作室"
+                    android:textSize="18sp" android:textStyle="bold" android:gravity="center"
+                    android:layout_marginTop="8dp"/>
+                <TextView android:id="@+id/txtAuthor" android:text="诺言"
+                    android:textSize="14sp" android:gravity="center" android:alpha="0.7"/>
+                <TextView android:text="刷机有风险，操作需谨慎" android:textSize="12sp"
+                    android:gravity="center" android:alpha="0.5" android:layout_marginTop="6dp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView android:text="📞 联系方式" android:textSize="16sp" android:textStyle="bold"
+            android:layout_marginTop="20dp"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnContactQQ"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp"
+            android:text="QQ"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnContactTg"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp"
+            android:text="Telegram @TELGRAMES"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnContactCoolapk"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp"
+            android:text="酷安 · 极风工作室"/>
+    </LinearLayout>
+</ScrollView>

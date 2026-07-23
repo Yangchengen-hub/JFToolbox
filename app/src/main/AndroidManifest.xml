@@ -1,82 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- USB / OTG -->
+    <!-- USB Host permission -->
     <uses-feature android:name="android.hardware.usb.host" android:required="true" />
     <uses-feature android:name="android.hardware.usb.accessory" android:required="false" />
-
-    <!-- Storage -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
     <!-- Network -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
-    <!-- System -->
+    <!-- Storage -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+    <!-- USB -->
+    <uses-permission android:name="android.permission.USB_PERMISSION" />
+
+    <!-- Foreground service for ADB daemon -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- USB device filter -->
-    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <!-- Install packages -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".JFToolboxApp"
-        android:allowBackup="false"
+        android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.JFToolbox"
-        android:usesCleartextTraffic="true"
-        tools:targetApi="31">
+        android:theme="@style/Theme.JFToolbox">
 
-        <!-- Disclaimer activity first -->
         <activity
             android:name=".ui.disclaimer.DisclaimerActivity"
-            android:exported="true"
-            android:theme="@style/Theme.JFToolbox.Splash">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Main -->
-        <activity
-            android:name=".ui.main.MainActivity"
-            android:exported="false"
-            android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.main.MainActivity" />
+        <activity android:name=".ui.flash.FlashActivity" />
+        <activity android:name=".ui.terminal.TerminalActivity" />
+        <activity android:name=".ui.downloader.DownloaderActivity" />
+        <activity android:name=".ui.browser.BrowserActivity" />
+        <activity android:name=".ui.wireless.WirelessDebugActivity" />
+        <activity android:name=".ui.freeze.FreezeActivity" />
+        <activity android:name=".ui.about.AboutActivity" />
 
-        <!-- Tool pages -->
-        <activity android:name=".ui.flash.FlashActivity" android:exported="false" />
-        <activity android:name=".ui.terminal.TerminalActivity" android:exported="false" />
-        <activity android:name=".ui.downloader.DownloaderActivity" android:exported="false" />
-        <activity android:name=".ui.browser.BrowserActivity" android:exported="false" />
-        <activity android:name=".ui.about.AboutActivity" android:exported="false" />
-        <activity android:name=".ui.wireless.WirelessDebugActivity" android:exported="false" />
-        <activity android:name=".ui.freeze.FreezeActivity" android:exported="false" />
+        <service android:name=".adb.AdbDaemonService" android:exported="false" />
 
-        <!-- USB permission receiver -->
-        <receiver
-            android:name=".usb.UsbPermissionReceiver"
-            android:exported="false" />
-
-        <!-- ADB service -->
-        <service
-            android:name=".adb.AdbDaemonService"
-            android:exported="false" />
+        <!-- USB device filter -->
+        <meta-data
+            android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+            android:resource="@xml/usb_device_filter" />
 
     </application>
 

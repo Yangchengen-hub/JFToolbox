@@ -27,25 +27,24 @@ jobs:
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-      - name: Grant execute permission
-        run: chmod +x ./gradlew 2>/dev/null || echo "no gradlew yet"
+      - name: Download Gradle Wrapper JAR
+        run: |
+          mkdir -p gradle/wrapper
+          curl -sS -L -o gradle/wrapper/gradle-wrapper.jar \
+            https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar
+          ls -la gradle/wrapper/gradle-wrapper.jar
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: |
-          # Try gradle wrapper first
-          if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug --no-daemon --stacktrace
-          else
-            # Fallback: use system gradle
-            gradle assembleDebug --no-daemon --stacktrace
-          fi
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: List build outputs (debug)
+      - name: List outputs on failure
         if: failure()
         run: |
           find . -name "*.apk" 2>/dev/null
-          find . -path "*/build/*" -name "*.log" 2>/dev/null | head -5
-          cat app/build/outputs/logs/* 2>/dev/null || true
+          find app/build -name "*.log" 2>/dev/null | xargs cat 2>/dev/null | tail -50
 
       - name: Upload APK
         if: success()

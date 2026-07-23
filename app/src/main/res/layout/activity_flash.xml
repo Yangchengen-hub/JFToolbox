@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_glass"
+    android:padding="20dp">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView android:text="⚡ 刷机" android:textSize="22sp" android:textStyle="bold"/>
+
+        <!-- ZIP -->
+        <com.google.android.material.card.MaterialCardView style="@style/JF.FeatureCard"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:text="ZIP 卡刷包" android:textStyle="bold" android:textSize="15sp"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnPickZip"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="10dp"
+                    android:text="选择 ZIP 文件"/>
+                <TextView android:id="@+id/txtPickedZip" android:text="(未选择)" android:textSize="12sp" android:alpha="0.7"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnValidateZip"
+                    android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp"
+                    android:text="校验 ZIP"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnFlashZip"
+                    android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp"
+                    android:text="刷入 ZIP"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- IMG -->
+        <com.google.android.material.card.MaterialCardView style="@style/JF.FeatureCard"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:text="单分区镜像 (.img)" android:textStyle="bold" android:textSize="15sp"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnPickImg"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="10dp"
+                    android:text="选择 IMG 文件"/>
+                <TextView android:id="@+id/txtPickedImg" android:text="(未选择)" android:textSize="12sp" android:alpha="0.7"/>
+                <EditText android:id="@+id/edtPartition" android:hint="分区名 (如 boot/recovery/system)"
+                    android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp"
+                    android:inputType="text" android:background="@android:drawable/editbox_background"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnFlashImg"
+                    android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp"
+                    android:text="刷入 IMG"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 日志 -->
+        <com.google.android.material.card.MaterialCardView style="@style/JF.FeatureCard"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:text="📋 日志终端" android:textStyle="bold" android:textSize="15sp"/>
+                <ScrollView android:layout_width="match_parent" android:layout_height="200dp"
+                    android:layout_marginTop="8dp" android:background="#11000000">
+                    <TextView android:id="@+id/txtLog" android:text="" android:textSize="11sp"
+                        android:fontFamily="monospace" android:padding="8dp"
+                        android:textColor="#000000"/>
+                </ScrollView>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>

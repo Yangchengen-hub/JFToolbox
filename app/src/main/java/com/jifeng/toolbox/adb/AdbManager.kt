@@ -1,92 +1,94 @@
 package com.jifeng.toolbox.adb
 
 import android.content.Context
+import android.hardware.usb.UsbDevice
+import com.jifeng.toolbox.adb.protocol.AdbConnection
+import com.jifeng.toolbox.adb.protocol.AdbKeyManager
+import com.jifeng.toolbox.adb.protocol.AdbSync
+import com.jifeng.toolbox.adb.protocol.AdbTransport
 import com.jifeng.toolbox.core.Logger
 
 /**
- * ADB 协议管理。MVP 阶段使用系统已授权的 ADB 通道 + 内嵌 ADB 服务器双轨。
- * - 若本机已通过 USB 拿到 ADB 权限（OTG 连被控机），直接走 exec("adb -s <serial> ...")
- * - 后续版本替换为 libusb + ADB-over-USB 私有实现，彻底免 root
+ * ADB 管理器 (单例)。USB 点对点连接, serial 参数仅用于 API 兼容, 实际忽略。
+ * 真正的传输由 AdbConnection over UsbDeviceConnection.bulkTransfer 完成。
  */
 object AdbManager {
 
     private const val TAG = "AdbManager"
-    lateinit var instance: AdbManagerImpl
+    lateinit var keys: AdbKeyManager
         private set
 
-    fun init(ctx: Context) {
-        instance = AdbManagerImpl(ctx)
-        Logger.i(TAG, "ADB 子系统初始化完成")
-    }
-}
+    @Volatile private var connection: AdbConnection? = null
+    @Volatile private var sync: AdbSync? = null
+    @Volatile var currentSerial: String? = null
+        private set
 
-class AdbManagerImpl(private val ctx: Context) {
+    val isConnected: Boolean get() = connection?.connected == true
+
+    fun init(ctx: Context) {
+        keys = AdbKeyManager(ctx)
+        Logger.i(TAG, "ADB 子系统初始化完成 (真 USB 传输)")
+    }
 
     /**
-     * 执行 adb shell 命令。MVP 优先使用系统 adb（要求开发者模式已授权），
-     * 失败则回退到内嵌通道（占位，后续接入 libadb）。
+     * 在已授权的 UsbDevice 上建立 ADB 连接。
+     * 由 UsbDeviceManager 在权限授予后调用。
      */
-    fun shell(serial: String, cmd: String): String? = try {
-        val runtime = Runtime.getRuntime()
-        val process = runtime.exec(arrayOf("adb", "-s", serial, "shell", cmd))
-        val out = process.inputStream.bufferedReader().readText()
-        val err = process.errorStream.bufferedReader().readText()
-        process.waitFor()
-        if (err.isNotBlank()) Logger.w("AdbShell", "stderr: $err")
-        out
-    } catch (e: Exception) {
-        Logger.e("AdbShell", "执行失败: ${e.message}")
-        null
+    fun connect(device: UsbDevice, rawConn: android.hardware.usb.UsbDeviceConnection): Boolean {
+        disconnect()
+        val transport = AdbTransport.open(device, rawConn, AdbTransport.IFACE_PROTOCOL_ADB)
+            ?: run { Logger.e(TAG, "未找到 ADB 接口"); return false }
+        val adb = AdbConnection(transport, keys)
+        if (!adb.connect()) { transport.release(); return false }
+        connection = adb
+        sync = AdbSync(adb)
+        currentSerial = readSerial()
+        Logger.i(TAG, "已连接设备 serial=$currentSerial")
+        return true
     }
 
-    fun push(serial: String, local: String, remote: String): Boolean = try {
-        val p = Runtime.getRuntime().exec(arrayOf("adb", "-s", serial, "push", local, remote))
-        p.waitFor() == 0
-    } catch (e: Exception) { false }
+    fun disconnect() {
+        connection?.close()
+        connection = null
+        sync = null
+        currentSerial = null
+    }
 
-    fun pull(serial: String, remote: String, local: String): Boolean = try {
-        val p = Runtime.getRuntime().exec(arrayOf("adb", "-s", serial, "pull", remote, local))
-        p.waitFor() == 0
-    } catch (e: Exception) { false }
+    private fun readSerial(): String? =
+        connection?.shell("getprop ro.serialno", 3_000)?.takeIf { it.isNotBlank() }
+
+    // ---------- 兼容旧 API (serial 忽略) ----------
+
+    fun shell(serial: String, cmd: String): String? {
+        val c = connection ?: return null
+        return try { c.shell(cmd) } catch (e: Exception) { Logger.w(TAG, "shell 失败: ${e.message}"); null }
+    }
+
+    fun push(serial: String, local: String, remote: String): Boolean =
+        sync?.push(local, remote) ?: false
+
+    fun pull(serial: String, remote: String, local: String): Boolean =
+        sync?.pull(remote, local) ?: false
 
     fun reboot(serial: String, target: String = "") {
         val cmd = if (target.isBlank()) "reboot" else "reboot $target"
         shell(serial, cmd)
     }
 
-    fun listDevices(): List<String> {
-        val out = shell("", "adb devices").orEmpty()
-        return out.lines().filter { it.contains("\t") }.map { it.split("\t")[0] }
-    }
+    /** 兼容旧 listDevices(): 连接存活时返回 [serial], 否则空。 */
+    fun listDevices(): List<String> =
+        if (isConnected && currentSerial != null) listOf(currentSerial!!) else emptyList()
 
     /**
-     * Fastboot 刷写单个分区。
+     * 真正的 fastboot 刷写在 FastbootClient (Phase 3) 中实现, 需设备进 bootloader。
+     * 此处保留兼容签名, 内部走 sync push + 提示用户切到 fastboot 模式。
      */
-    fun fastbootFlash(serial: String, partition: String, imgPath: String): Boolean = try {
-        // 先把 img push 到被控机的 /data/local/tmp
-        push(serial, imgPath, "/data/local/tmp/${partition}.img")
-        val r = shell(serial, "dd if=/data/local/tmp/${partition}.img of=/dev/block/by-name/$partition")
-        Logger.i("Fastboot", "$partition 刷写结果: $r")
-        r != null
-    } catch (e: Exception) {
-        Logger.e("Fastboot", "刷写 $partition 失败: ${e.message}")
-        false
+    fun fastbootFlash(serial: String, partition: String, imgPath: String): Boolean {
+        Logger.w(TAG, "此方法已弃用, 请用 FastbootClient (设备需进 bootloader)")
+        return false
     }
 
-    /**
-     * 解析 ZIP 卡刷包（简化版）：列出 entries，按 partition map 刷写。
-     * 完整实现需要 zip 解包 + 校验，MVP 用 commons-compress。
-     */
     fun parseAndFlashZip(serial: String, zipPath: String): Pair<Boolean, String> {
-        return try {
-            // push 到设备端，让设备端 fastboot 自己处理
-            push(serial, zipPath, "/data/local/tmp/update.zip")
-            val r = shell(serial, "cd /data/local/tmp && unzip -l update.zip")
-            Logger.i("ZipFlash", "ZIP 内容:\n$r")
-            // 这里仅做展示；真刷写需进入 fastboot 模式逐分区 dd
-            Pair(true, r ?: "无输出")
-        } catch (e: Exception) {
-            Pair(false, e.message ?: "unknown")
-        }
+        return Pair(false, "请使用 FastbootClient 在 bootloader 模式下刷 ZIP (Phase 3)")
     }
 }

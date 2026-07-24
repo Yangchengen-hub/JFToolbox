@@ -6,6 +6,7 @@ import android.util.Log
 import com.jifeng.toolbox.adb.AdbManager
 import com.jifeng.toolbox.core.CrashHandler
 import com.jifeng.toolbox.core.ThemeManager
+import com.jifeng.toolbox.notify.FlashNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
@@ -27,6 +28,7 @@ class JFToolboxApp : Application() {
         // Init subsystems
         ThemeManager.init(this)
         AdbManager.init(this)
+        FlashNotificationManager.init(this)
 
         Log.i("JFToolbox", "极风工具箱 v${BuildConfig.VERSION_NAME} 已启动")
     }

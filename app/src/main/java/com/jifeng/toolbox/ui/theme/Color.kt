@@ -24,8 +24,8 @@ object JFColors {
     val LightOnSurface = Color(0xFF2A2A2A)
     val LightOutline = Color(0xFFD8DCE3)
 
-    // 深色模式
-    val DarkBg = Color(0xFF0A0B0F)
+    // 深色模式 (背景稍带蓝调, 不再纯黑, 卡片更可见)
+    val DarkBg = Color(0xFF0E1015)
     val DarkSurface = Color(0xFF15171D)
     val DarkSurfaceVariant = Color(0xFF1F2229)
     val DarkOnBg = Color(0xFFE8E9EC)
@@ -33,8 +33,8 @@ object JFColors {
     val DarkOutline = Color(0xFF2E323B)
 
     // 液态玻璃主色 (半透明)
-    val GlassLightTint = Color(0xCCFFFFFF)     // 80% 白
-    val GlassDarkTint = Color(0xCC1A1D24)      // 80% 深灰
+    val GlassLightTint = Color(0xD9FFFFFF)     // 85% 白, alpha 略调高提升层次
+    val GlassDarkTint = Color(0xCC1C1F26)      // 80% 深灰, 稍亮让卡片更可见
     val GlassLightStroke = Color(0x33FFFFFF)   // 20% 白
     val GlassDarkStroke = Color(0x33FFFFFF)
 

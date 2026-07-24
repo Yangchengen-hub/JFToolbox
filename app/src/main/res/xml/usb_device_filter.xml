@@ -1,10 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  USB 设备过滤: 用于 USB 插入时触发 Activity / 接收广播。
+  每个 <usb-device> 内属性为 AND, 多条之间为 OR。
+  接口识别 (class=0xFF subclass=0x42) 覆盖 ADB(protocol=1) 与 Fastboot(protocol=3)。
+  常见厂商 ID 兜底: 即便设备未报告标准 ADB 接口, 插入也能触发识别流程。
+-->
 <resources>
-    <!-- ADB interface -->
+    <!-- ADB interface (class=0xFF subclass=0x42 protocol=0x01) -->
     <usb-device class="255" subclass="66" protocol="1" />
-    <!-- Fastboot interface -->
-    <usb-device class="255" subclass="34" protocol="0" />
-    <!-- Generic Android device -->
-    <usb-device vendor-id="18" product-id="2076" />
-    <usb-device vendor-id="1137" product-id="1024" />
+    <!-- Fastboot interface (class=0xFF subclass=0x42 protocol=0x03) -->
+    <usb-device class="255" subclass="66" protocol="3" />
+
+    <!-- 常见安卓厂商 ID (USB 插入即触发, 实际 ADB 接口识别在代码层完成) -->
+    <usb-device vendor-id="6353" />  <!-- Google 0x18d1 -->
+    <usb-device vendor-id="10007" /> <!-- 小米 Xiaomi 0x2717 -->
+    <usb-device vendor-id="1256" />  <!-- 三星 Samsung 0x04e8 -->
+    <usb-device vendor-id="8921" />  <!-- OPPO 0x22d9 -->
+    <usb-device vendor-id="11669" /> <!-- vivo 0x2d95 -->
+    <usb-device vendor-id="4817" />  <!-- 华为 Huawei 0x12d1 -->
+    <usb-device vendor-id="1478" />  <!-- 一加 OnePlus / 高通 Qualcomm 0x05c6 -->
+    <usb-device vendor-id="6127" />  <!-- 联想 Lenovo 0x17ef -->
+    <usb-device vendor-id="3725" />  <!-- 联发科 MediaTek 0x0e8d -->
+    <usb-device vendor-id="4046" />  <!-- 索尼 Sony 0x0fce -->
+    <usb-device vendor-id="8888" />  <!-- 摩托罗拉 Motorola 0x22b8 -->
 </resources>

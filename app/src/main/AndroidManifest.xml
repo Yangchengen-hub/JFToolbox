@@ -56,7 +56,19 @@
         </activity>
 
         <!-- 主页面 + 功能页 (全部 Compose) -->
-        <activity android:name=".ui.main.MainComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity
+            android:name=".ui.main.MainComposeActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.JFToolbox">
+            <!-- USB 设备插入时拉起主页面 (配合 usb_device_filter.xml 触发识别流程) -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/usb_device_filter" />
+        </activity>
         <activity android:name=".ui.flash.FlashComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.terminal.TerminalComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.wireless.WirelessDebugComposeActivity" android:theme="@style/Theme.JFToolbox" />
@@ -71,6 +83,7 @@
         <activity android:name=".ui.crypto.CryptoComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.browser.BrowserComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.about.AboutComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.permission.PermissionComposeActivity" android:exported="false" android:theme="@style/Theme.JFToolbox" />
 
         <!-- 旧 View 体系 Activity 保留但不再启动 (兼容期) -->
         <activity android:name=".ui.main.MainActivity" android:exported="false" />
@@ -83,12 +96,21 @@
         <activity android:name=".ui.freeze.FreezeActivity" android:exported="false" />
         <activity android:name=".ui.about.AboutActivity" android:exported="false" />
 
-        <service android:name=".adb.AdbDaemonService" android:exported="false" />
+        <service
+            android:name=".adb.AdbDaemonService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
 
-        <!-- USB device filter -->
-        <meta-data
-            android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
-            android:resource="@xml/usb_device_filter" />
+        <!-- USB 权限/插拔广播接收器 -->
+        <receiver
+            android:name=".usb.UsbPermissionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.jifeng.toolbox.USB_PERMISSION" />
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+                <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

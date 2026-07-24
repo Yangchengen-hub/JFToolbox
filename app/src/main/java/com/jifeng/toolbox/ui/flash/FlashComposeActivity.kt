@@ -48,11 +48,12 @@ import com.jifeng.toolbox.edl.EdlRescuer
 import com.jifeng.toolbox.edl.EdlTransport
 import com.jifeng.toolbox.edl.FirehoseProtocol
 import com.jifeng.toolbox.edl.RawprogramParser
-import com.jifeng.toolbox.fastboot.FastbootClient
 import com.jifeng.toolbox.fastboot.FastbootFlasher
+import com.jifeng.toolbox.notify.FlashNotificationManager
 import com.jifeng.toolbox.ui.components.JFScaffold
 import com.jifeng.toolbox.ui.components.LiquidGlassCard
 import com.jifeng.toolbox.ui.components.LogTerminal
+import com.jifeng.toolbox.usb.UsbDeviceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -150,11 +151,53 @@ private fun FastbootTab() {
                         }
                     }) { Text("校验") }
                     Button(onClick = {
+                        val zipPath = it
                         scope.launch {
-                            logs.clear(); progress = 0f
-                            logs.add("⚠ 请确认设备已在 fastboot 模式")
-                            // 真实刷写需要 FastbootClient 打开 USB, 这里走 Activity 隔离
-                            logs.add("(Phase 6 将集成 USB 设备选择器, 当前演示日志)")
+                            logs.clear()
+                            progress = 0f
+                            progressLabel = "查找 fastboot 设备..."
+
+                            // 1. 查找 fastboot 设备 (设备须已进 bootloader)
+                            val usbMgr = UsbDeviceManager.get(ctx)
+                            val device = withContext(Dispatchers.IO) { usbMgr.findFastbootDevice() }
+                            if (device == null) {
+                                logs.add("❌ 未检测到 fastboot 设备")
+                                logs.add("请将设备重启到 bootloader/fastboot 模式 (adb reboot bootloader 或按键组合)")
+                                if (AdbManager.isConnected) {
+                                    logs.add("提示: 当前 ADB 已连接, 可点击「重启到 fastboot」")
+                                } else {
+                                    logs.add("提示: 当前无 ADB 连接, 请先用 OTG 连接并授权被控端, 再重启到 bootloader")
+                                }
+                                FlashNotificationManager.flashFailed(ctx, "设备",
+                                    "未检测到 fastboot 设备, 请先进 bootloader")
+                                progress = null
+                                return@launch
+                            }
+
+                            // 2. 真实刷写: FastbootFlasher.flash() 内部完成
+                            //    校验 → 权限 → 打开设备 → 逐分区 erase/download/flash → 通知栏 → reboot
+                            progressLabel = "刷写中..."
+                            val ok = withContext(Dispatchers.IO) {
+                                FastbootFlasher.flash(
+                                    ctx = ctx,
+                                    device = device,
+                                    zipPath = zipPath,
+                                    onProgress = { name, cur, total ->
+                                        // 切回主线程更新 Compose 进度状态
+                                        scope.launch {
+                                            progress = (cur.toFloat() / total).coerceIn(0f, 1f)
+                                            progressLabel = "$name ($cur/$total)"
+                                        }
+                                    },
+                                    onLog = { msg ->
+                                        // 切回主线程追加日志
+                                        scope.launch { logs.add(msg) }
+                                    }
+                                )
+                            }
+                            // 收尾状态由 onLog/onProgress 已实时更新; 仅清进度条
+                            progress = null
+                            progressLabel = if (ok) "刷写完成" else "刷写失败"
                         }
                     }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary)) {

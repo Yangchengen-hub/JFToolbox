@@ -1,6 +1,10 @@
 package com.jifeng.toolbox.fastboot
 
+import android.content.Context
+import android.hardware.usb.UsbDevice
 import com.jifeng.toolbox.core.Logger
+import com.jifeng.toolbox.notify.FlashNotificationManager
+import com.jifeng.toolbox.usb.UsbDeviceManager
 import org.apache.commons.compress.archivers.zip.ZipFile
 import java.io.File
 
@@ -85,6 +89,119 @@ object FastbootFlasher {
             }
         }
         onProgress(Progress(parts.size, parts.size, "", if (allOk) "全部刷写完成" else "部分失败", allOk))
+        return allOk
+    }
+
+    /**
+     * 高阶刷写入口 (UI 调用): 打开 fastboot 设备 → 校验 → 逐分区 erase/download/flash →
+     * 通知栏进度 → 完成后 reboot。
+     *
+     * 调用方须确保设备已进 bootloader 模式 (UsbDeviceManager.isFastbootDevice(device) == true)。
+     * 此方法内部管理 FastbootClient 生命周期与 FlashNotificationManager 通知, 不可在主线程调用。
+     *
+     * @param ctx 用于 UsbDeviceManager 与通知栏 (任意 Context, 内部取 applicationContext)
+     * @param device 已检测到的 fastboot USB 设备
+     * @param zipPath 卡刷包本地路径
+     * @param onProgress (partitionName, current, total) 每步进度回调 (current 从 1 起)
+     * @param onLog 日志回调 (含 [cur/total] 前缀, 可直接显示)
+     * @param rebootOnSuccess 全部成功后是否自动 reboot 设备
+     * @return 是否全部刷写成功
+     */
+    fun flash(
+        ctx: Context,
+        device: UsbDevice,
+        zipPath: String,
+        onProgress: (partitionName: String, current: Int, total: Int) -> Unit,
+        onLog: (msg: String) -> Unit,
+        rebootOnSuccess: Boolean = true
+    ): Boolean {
+        val usbMgr = UsbDeviceManager.get(ctx)
+
+        // 1. 校验卡刷包 (在打开设备前快速失败)
+        onLog("校验卡刷包: ${File(zipPath).name}")
+        if (!validate(zipPath)) {
+            onLog("❌ 不是合法 fastboot 卡刷包")
+            FlashNotificationManager.flashFailed(ctx, "校验", "不是合法 fastboot 卡刷包")
+            return false
+        }
+        val parts = listPartitions(zipPath)
+        if (parts.isEmpty()) {
+            onLog("❌ 包内无 .img 镜像")
+            FlashNotificationManager.flashFailed(ctx, "包", "包内无镜像")
+            return false
+        }
+        onLog("✅ 校验通过: 合法 fastboot 卡刷包, 含 ${parts.size} 个分区镜像")
+
+        // 2. USB 权限检查 (复用主页已授权的权限; 未授权则请求并提示用户重试)
+        if (!usbMgr.hasPermission(device)) {
+            onLog("请求 fastboot 设备 USB 权限: ${device.deviceName} vid=${device.vendorId} pid=${device.productId}")
+            usbMgr.requestFastbootPermission(device)
+            onLog("请在系统弹窗中授权后, 再次点击「开始刷写」")
+            FlashNotificationManager.flashFailed(ctx, "设备", "等待 USB 权限授权")
+            return false
+        }
+
+        // 3. 打开 USB 设备 + FastbootClient
+        val rawConn = usbMgr.openDevice(device)
+        if (rawConn == null) {
+            onLog("❌ 打开 USB 设备失败 (权限被撤销或设备已拔出)")
+            FlashNotificationManager.flashFailed(ctx, "设备", "打开 USB 设备失败")
+            return false
+        }
+        val client = FastbootClient()
+        if (!client.open(device, rawConn)) {
+            onLog("❌ Fastboot 接口打开失败 (设备可能未真正进入 bootloader)")
+            client.close()
+            FlashNotificationManager.flashFailed(ctx, "设备", "Fastboot 接口打开失败")
+            return false
+        }
+        onLog("✅ Fastboot 设备已连接: ${device.deviceName}")
+
+        // 4. 启动通知 + 真实刷写
+        FlashNotificationManager.startFlash(ctx, parts.size)
+        var allOk = false
+        try {
+            allOk = flashZip(zipPath, client) { p ->
+                // 日志回调: 带 [cur/total] 与分区名前缀
+                if (p.message.isNotBlank()) onLog(buildString {
+                    if (p.total > 0) append("[${p.current}/${p.total}] ")
+                    if (p.partition.isNotBlank()) append("${p.partition}: ")
+                    append(p.message)
+                })
+                // 进度回调 + 通知栏更新 (仅分区级进度, 传输百分比不刷通知以免淹没)
+                if (p.partition.isNotBlank() && p.total > 0) {
+                    onProgress(p.partition, p.current, p.total)
+                    FlashNotificationManager.updateProgress(ctx, p.partition, p.current, p.total)
+                }
+                // 单分区失败 → 失败通知 (不立即 return, 继续尝试后续分区由调用方决定)
+                if (p.message.startsWith("✗ 失败") && p.partition.isNotBlank()) {
+                    FlashNotificationManager.flashFailed(ctx, p.partition, p.message)
+                }
+            }
+        } catch (e: Exception) {
+            onLog("❌ 刷写异常: ${e.message}")
+            FlashNotificationManager.flashFailed(ctx, "刷写", e.message ?: "未知异常")
+        } finally {
+            // 5. 成功则 reboot, 然后关闭 client
+            if (allOk && rebootOnSuccess) {
+                try {
+                    onLog("全部成功, 重启设备...")
+                    client.reboot()
+                } catch (e: Exception) {
+                    Logger.w("Fastboot", "reboot 失败 (可手动重启): ${e.message}")
+                }
+            }
+            client.close()
+        }
+
+        // 6. 收尾通知
+        if (allOk) {
+            onLog("✅ 全部刷写完成, 设备已重启")
+            FlashNotificationManager.flashSuccess(ctx)
+        } else {
+            onLog("⚠ 部分分区刷写失败, 请查看上方日志")
+            // 失败通知已在单分区失败时发出; 若整体异常则已在 catch 中发出
+        }
         return allOk
     }
 

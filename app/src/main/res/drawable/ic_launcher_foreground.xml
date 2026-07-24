@@ -1,66 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   极风工具箱 启动图标前景
-  齿轮 + 扳手 (工具箱主题), 小米风格白色质感
-  安全区域: 中心 72x72 (viewport 36~72), 中心点 (54,54)
+  卡通"极风小狐狸"形象 (品牌橙 + 白 + 深色点缀)
+  安全区域: 中心 36x36 (viewport 36~72), 中心点 (54,54)
+  设计: 圆脑袋 + 两只尖耳朵 + 白色脸颊下巴 + 黑眼睛 + 小三角鼻 + 微笑
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
 
-    <!-- ===== 齿轮主体 (8 齿) ===== -->
-    <!-- 齿轮外环 + 齿: 以 (54,54) 为圆心, 外径 28, 齿根径 22 -->
+    <!-- ===== 耳朵 (外层, 品牌橙 #FF6B35) ===== -->
+    <!-- 左耳: 尖朝上 -->
+    <path android:fillColor="#FF6B35"
+        android:pathData="M39,48 L42,36 L50,46 Z"/>
+    <!-- 右耳: 尖朝上 -->
+    <path android:fillColor="#FF6B35"
+        android:pathData="M58,46 L66,36 L69,48 Z"/>
 
-    <!-- 齿 0 (上) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M50,26 h8 v8 h-8 z"/>
-    <!-- 齿 1 (右上) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M67.2,33.2 l5.6,5.6 l-5.6,5.6 l-5.6,-5.6 z"/>
-    <!-- 齿 2 (右) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M74,50 h8 v8 h-8 z"/>
-    <!-- 齿 3 (右下) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M67.2,67.2 l5.6,-5.6 l5.6,5.6 l-5.6,5.6 z"/>
-    <!-- 齿 4 (下) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M50,74 h8 v8 h-8 z"/>
-    <!-- 齿 5 (左下) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M35.2,69.2 l5.6,-5.6 l5.6,5.6 l-5.6,5.6 z"/>
-    <!-- 齿 6 (左) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M26,50 h8 v8 h-8 z"/>
-    <!-- 齿 7 (左上) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M35.2,33.2 l5.6,5.6 l-5.6,5.6 l-5.6,-5.6 z"/>
+    <!-- ===== 耳朵内侧 (深橙阴影 #E0582A, 增加层次) ===== -->
+    <!-- 左耳内 -->
+    <path android:fillColor="#E0582A"
+        android:pathData="M42,46 L43,39 L47,45 Z"/>
+    <!-- 右耳内 -->
+    <path android:fillColor="#E0582A"
+        android:pathData="M61,45 L65,39 L66,46 Z"/>
 
-    <!-- 齿轮主圆盘 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M54,54 m-22,0 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0"/>
+    <!-- ===== 头部主体 (品牌橙圆形, 中心 (54,55), 半径 15) ===== -->
+    <path android:fillColor="#FF6B35"
+        android:pathData="M54,55 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0"/>
 
-    <!-- 齿轮内环 (橙色镂空, 露出背景) -->
-    <path android:fillColor="#FF6900"
-        android:pathData="M54,54 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0"/>
+    <!-- ===== 头顶高光 (浅橙 #FF8E53, 椭圆, 立体感) ===== -->
+    <path android:fillColor="#FF8E53"
+        android:pathData="M48,47 m-7,0 a7,4.5 0 1,0 14,0 a7,4.5 0 1,0 -14,0"/>
 
-    <!-- ===== 扳手 (斜跨齿轮, 白色) ===== -->
-    <!-- 扳手柄: 从左下到右上的斜条 -->
+    <!-- ===== 白色脸颊 / 下巴 (白色 #FFFFFF, 包裹口鼻区域) ===== -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M38,62 L42,58 L66,34 L70,38 L46,62 L42,66 Z"/>
-    <!-- 扳手开口 (左下端, 橙色镂空) -->
-    <path android:fillColor="#FF6900"
-        android:pathData="M36,64 L40,60 L44,64 L40,68 Z"/>
-    <!-- 扳手开口 (右上端, 橙色镂空) -->
-    <path android:fillColor="#FF6900"
-        android:pathData="M64,32 L68,36 L72,32 L68,28 Z"/>
+        android:pathData="M41,57 Q54,71 67,57 Q60,64 54,64 Q48,64 41,57 Z"/>
 
-    <!-- ===== 中心 "JF" 标识 ===== -->
-    <!-- J 字 -->
+    <!-- ===== 眼睛 (深色 #2C2C2C, 圆形) ===== -->
+    <!-- 左眼 -->
+    <path android:fillColor="#2C2C2C"
+        android:pathData="M47,52 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0"/>
+    <!-- 右眼 -->
+    <path android:fillColor="#2C2C2C"
+        android:pathData="M61,52 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0"/>
+
+    <!-- ===== 眼睛高光 (白色小点, 灵动感) ===== -->
+    <!-- 左眼高光 -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M51,45 h4 v8 a3,3 0 0,1 -6,0 v-2 h3 v2 a0,0 0 0,0 0,0 v-8 z"/>
-    <!-- F 字 -->
+        android:pathData="M47.8,51 m-0.9,0 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0"/>
+    <!-- 右眼高光 -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M56,45 h7 v3 h-4 v2 h3 v3 h-3 v3 h-3 z"/>
+        android:pathData="M61.8,51 m-0.9,0 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0"/>
+
+    <!-- ===== 鼻子 (深色小三角 #2C2C2C) ===== -->
+    <path android:fillColor="#2C2C2C"
+        android:pathData="M52,58.5 L56,58.5 L54,61.5 Z"/>
+
+    <!-- ===== 微笑 (深色弧线) ===== -->
+    <path android:fillColor="#00000000"
+        android:strokeColor="#2C2C2C"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M50.5,63.5 Q54,66.5 57.5,63.5"/>
 
 </vector>

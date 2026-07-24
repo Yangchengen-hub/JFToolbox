@@ -1,21 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   极风工具箱 启动图标背景
-  小米风格: 橙色渐变 (#FF6900 → #FF8800 → #E65100)
+  小米风格柔和橙色渐变 (#FF8E53 → #FF6B35), 圆角矩形 + 径向高光
+  整图铺满 108x108, 系统会按 launcher 形状裁剪
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
 
-    <!-- 主背景渐变 -->
-    <path android:fillColor="#FF6900"
-        android:pathData="M0,0h108v108h-108z"/>
+    <!-- 主背景: 顶亮底沉的柔和线性渐变 -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear"
+                android:startX="0" android:startY="0"
+                android:endX="0" android:endY="108">
+                <item android:offset="0" android:color="#FF8E53"/>
+                <item android:offset="0.55" android:color="#FF6B35"/>
+                <item android:offset="1" android:color="#E6582A"/>
+            </gradient>
+        </aapt:attr>
+    </path>
 
     <!-- 径向高光 (左上偏亮, 模拟小米品牌质感) -->
-    <path android:fillColor="#FF8800" android:fillAlpha="0.6"
-        android:pathData="M0,0h108v54h-108z"/>
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial"
+                android:centerX="34" android:centerY="30"
+                android:gradientRadius="80">
+                <item android:offset="0" android:color="#66FFFFFF"/>
+                <item android:offset="0.5" android:color="#1AFFFFFF"/>
+                <item android:offset="1" android:color="#00FFFFFF"/>
+            </gradient>
+        </aapt:attr>
+    </path>
 
-    <!-- 底部暗角 -->
-    <path android:fillColor="#E65100" android:fillAlpha="0.4"
-        android:pathData="M0,72h108v36h-108z"/>
+    <!-- 底部柔暗角 (增加纵深, 让前景狐狸更突出) -->
+    <path android:fillColor="#B33A10" android:fillAlpha="0.18"
+        android:pathData="M0,78h108v30h-108z"/>
+
 </vector>

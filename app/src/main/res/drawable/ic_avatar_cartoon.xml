@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+
+    <!-- 天线杆 (品牌橙) -->
+    <path android:strokeColor="#FF6B35" android:strokeWidth="3" android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M42,24 L40,15" />
+    <path android:strokeColor="#FF6B35" android:strokeWidth="3" android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M66,24 L68,15" />
+
+    <!-- 天线小球 (品牌橙) -->
+    <path android:fillColor="#FF6B35"
+        android:pathData="M35,10 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 z" />
+    <path android:fillColor="#FF6B35"
+        android:pathData="M63,10 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 z" />
+
+    <!-- 圆脑袋 (品牌橙) -->
+    <path android:fillColor="#FF6B35"
+        android:pathData="M24,56 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 z" />
+
+    <!-- 头顶高光 (半透明白) -->
+    <path android:fillColor="#66FFFFFF"
+        android:pathData="M38,40 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0 z" />
+
+    <!-- 左眼 (白) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M37,52 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 z" />
+    <!-- 右眼 (白) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M57,52 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 z" />
+
+    <!-- 左瞳孔 (品牌橙) -->
+    <path android:fillColor="#FF6B35"
+        android:pathData="M42.5,53 a2.8,2.8 0 1,0 5.6,0 a2.8,2.8 0 1,0 -5.6,0 z" />
+    <!-- 右瞳孔 (品牌橙) -->
+    <path android:fillColor="#FF6B35"
+        android:pathData="M60.1,53 a2.8,2.8 0 1,0 5.6,0 a2.8,2.8 0 1,0 -5.6,0 z" />
+
+    <!-- 腮红 (半透明白) -->
+    <path android:fillColor="#80FFFFFF"
+        android:pathData="M31,62 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 z" />
+    <path android:fillColor="#80FFFFFF"
+        android:pathData="M71,62 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 z" />
+
+    <!-- 微笑嘴巴 (白色月牙) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M44,62 Q54,74 64,62 Q54,68 44,62 z" />
+
+</vector>

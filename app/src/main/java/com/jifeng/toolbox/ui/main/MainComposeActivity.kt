@@ -1,7 +1,14 @@
 package com.jifeng.toolbox.ui.main
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
+import com.jifeng.toolbox.core.Logger
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -92,6 +99,57 @@ class MainComposeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent { MainScreen() }
     }
+
+    /** USB 热插拔动态接收器: 插入 ADB 设备自动请求权限连接, 拔出自动断开。 */
+    private val usbReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val device = intent.usbDeviceExtra()
+            when (intent.action) {
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    Logger.i("MainUSB", "设备插入: ${device?.deviceName} vid=${device?.vendorId} pid=${device?.productId}")
+                    device?.let { UsbDeviceManager.get(this@MainComposeActivity).onDeviceAttached(it) }
+                }
+                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    Logger.i("MainUSB", "设备拔出: ${device?.deviceName}")
+                    UsbDeviceManager.get(this@MainComposeActivity).onDeviceDetached()
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(usbReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(usbReceiver, filter)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try { unregisterReceiver(usbReceiver) } catch (_: Exception) {}
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
+            Logger.i("MainUSB", "onNewIntent: USB 设备插入, 触发扫描连接")
+            UsbDeviceManager.get(this).scanAndConnect()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun Intent.usbDeviceExtra(): UsbDevice? =
+        if (Build.VERSION.SDK_INT >= 33)
+            getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+        else
+            getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
 
     @Composable
     private fun MainScreen() {

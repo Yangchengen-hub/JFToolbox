@@ -20,20 +20,19 @@ import com.jifeng.toolbox.ui.theme.JFColors
 /**
  * 液态玻璃 (Liquid Glass) 容器。
  *
- * 实现策略 (兼容 minSdk 24):
- *   1. 半透明色调叠加 (Compose 渲染, 不依赖 RenderEffect which requires API 31)
- *   2. blur 作为可选增强 (API 31+ 才有效, 低版本降级为半透明)
- *   3. 1px 渐变 stroke 模拟玻璃边缘高光
- *   4. 圆角 + 内层 padding 模拟深度
+ * 修复方案: 使用分层架构
+ *   1. 底层: 半透明背景 + 可选 blur (仅影响背景)
+ *   2. 上层: 内容层 (无 blur, 保持清晰)
+ *   3. 边框: 1px 渐变 stroke 模拟玻璃边缘高光
  *
- * 真正的 backdrop blur 在 API < 31 无法实现, 这里用半透明 + 渐变描边达到视觉等效。
+ * 关键修复: blur 只应用在背景层, 不影响内容
  */
 @Composable
 fun LiquidGlassBox(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 24.dp,
-    blurRadius: Dp = 24.dp,
-    tintAlpha: Float = 0.65f,
+    blurRadius: Dp = 12.dp,
+    tintAlpha: Float = 0.55f,
     content: @Composable () -> Unit
 ) {
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
@@ -41,31 +40,40 @@ fun LiquidGlassBox(
     val strokeColor = if (isDark) JFColors.GlassDarkStroke else JFColors.GlassLightStroke
     val shape = RoundedCornerShape(cornerRadius)
 
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .blur(blurRadius)
-            .drawBehind {
-                // 半透明背景
-                drawRect(color = baseTint.copy(alpha = tintAlpha))
-                // 顶部高光渐变 (模拟玻璃反光)
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.08f else 0.4f),
-                            Color.White.copy(alpha = 0.0f)
-                        ),
-                        startY = 0f,
-                        endY = size.height * 0.5f
+    Box(modifier = modifier.clip(shape)) {
+        // ===== 背景层 (模糊效果只在这里) =====
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .blur(blurRadius)
+                .drawBehind {
+                    drawRect(color = baseTint.copy(alpha = tintAlpha))
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDark) 0.06f else 0.3f),
+                                Color.White.copy(alpha = 0.0f)
+                            ),
+                            startY = 0f,
+                            endY = size.height * 0.5f
+                        )
                     )
-                )
-            }
-            .border(width = 1.dp, brush = Brush.verticalGradient(
-                colors = listOf(strokeColor, Color.Transparent, strokeColor)
-            ), shape = shape)
-            .padding(0.dp)
-    ) {
-        content()
+                }
+        )
+
+        // ===== 边框层 =====
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .border(width = 1.dp, brush = Brush.verticalGradient(
+                    colors = listOf(strokeColor, Color.Transparent, strokeColor)
+                ), shape = shape)
+        )
+
+        // ===== 内容层 (无 blur, 保持清晰) =====
+        Box(modifier = Modifier.matchParentSize()) {
+            content()
+        }
     }
 }
 
@@ -80,9 +88,9 @@ fun LiquidGlassCard(
     content: @Composable () -> Unit
 ) {
     LiquidGlassBox(
-        modifier = modifier.padding(0.dp),
+        modifier = modifier,
         cornerRadius = cornerRadius,
-        tintAlpha = 0.7f
+        tintAlpha = 0.6f
     ) {
         Box(modifier = Modifier.padding(padding)) {
             content()

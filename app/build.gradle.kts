@@ -95,4 +95,7 @@ dependencies {
     // RSA 加密 (ADB 授权 + 加密工具模块)
     implementation("org.bouncycastle:bcprov-jdk18on:1.78")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.78")
+
+    // SSH 客户端 (超级终端 SSH 模式)
+    implementation("com.github.mwiede:jsch:0.2.20")
 }

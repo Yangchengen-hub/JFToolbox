@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- USB Host permission -->
+    <!-- USB Host permission (必需: OTG 直连被控端) -->
     <uses-feature android:name="android.hardware.usb.host" android:required="true" />
     <uses-feature android:name="android.hardware.usb.accessory" android:required="false" />
 
-    <!-- Network -->
+    <!-- Network (下载器 / GitHub / 酷安拉取 / SSH) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <!-- Storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
     <!-- USB -->
@@ -19,10 +23,15 @@
 
     <!-- Foreground service for ADB daemon -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Install packages -->
+    <!-- Install packages (APK 安装器) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Query packages (扫描已装应用, Android 11+ 强制) -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission"
+        xmlns:tools="http://schemas.android.com/tools" />
 
     <application
         android:name=".JFToolboxApp"
@@ -32,25 +41,47 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.JFToolbox">
+        android:theme="@style/Theme.JFToolbox"
+        android:requestLegacyExternalStorage="true">
 
+        <!-- 启动入口: Compose 版免责声明 -->
         <activity
-            android:name=".ui.disclaimer.DisclaimerActivity"
-            android:exported="true">
+            android:name=".ui.disclaimer.DisclaimerComposeActivity"
+            android:exported="true"
+            android:theme="@style/Theme.JFToolbox">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.main.MainActivity" />
-        <activity android:name=".ui.flash.FlashActivity" />
-        <activity android:name=".ui.terminal.TerminalActivity" />
-        <activity android:name=".ui.downloader.DownloaderActivity" />
-        <activity android:name=".ui.browser.BrowserActivity" />
-        <activity android:name=".ui.wireless.WirelessDebugActivity" />
-        <activity android:name=".ui.freeze.FreezeActivity" />
-        <activity android:name=".ui.about.AboutActivity" />
+        <!-- 主页面 + 功能页 (全部 Compose) -->
+        <activity android:name=".ui.main.MainComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.flash.FlashComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.terminal.TerminalComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.wireless.WirelessDebugComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.screenmirror.ScreenMirrorComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.downloader.DownloaderComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.firmware.FirmwareComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.installer.InstallerComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.kernel.KernelComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.backup.BackupComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.freeze.FreezeComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.tweak.TweakComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.crypto.CryptoComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.browser.BrowserComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.about.AboutComposeActivity" android:theme="@style/Theme.JFToolbox" />
+
+        <!-- 旧 View 体系 Activity 保留但不再启动 (兼容期) -->
+        <activity android:name=".ui.main.MainActivity" android:exported="false" />
+        <activity android:name=".ui.disclaimer.DisclaimerActivity" android:exported="false" />
+        <activity android:name=".ui.flash.FlashActivity" android:exported="false" />
+        <activity android:name=".ui.terminal.TerminalActivity" android:exported="false" />
+        <activity android:name=".ui.downloader.DownloaderActivity" android:exported="false" />
+        <activity android:name=".ui.browser.BrowserActivity" android:exported="false" />
+        <activity android:name=".ui.wireless.WirelessDebugActivity" android:exported="false" />
+        <activity android:name=".ui.freeze.FreezeActivity" android:exported="false" />
+        <activity android:name=".ui.about.AboutActivity" android:exported="false" />
 
         <service android:name=".adb.AdbDaemonService" android:exported="false" />
 

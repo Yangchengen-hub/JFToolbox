@@ -41,9 +41,8 @@ object DeviceDetector {
             val sdk = get("ro.build.version.sdk").toIntOrNull() ?: 0
             val bl = get("ro.bootloader").ifBlank { "未知" }
 
-            // root 检测
-            val suCheck = adb.shell(serial, "which su 2>/dev/null; id").orEmpty()
-            val hasRoot = suCheck.contains("uid=0") || suCheck.contains("/su")
+            // Root / 管理器检测（Magisk / KernelSU / APatch 自动适配）
+            val rootStatus = RootDetector.detect(serial)
 
             // 分区表
             val partitions = readPartitions(serial)
@@ -51,9 +50,13 @@ object DeviceDetector {
             val result = info.copy(
                 model = model, manufacturer = manufacturer, product = product,
                 board = board, chipset = chipset, androidVersion = androidVer,
-                sdkInt = sdk, bootloader = bl, hasRoot = hasRoot, partitions = partitions
+                sdkInt = sdk, bootloader = bl,
+                hasRoot = rootStatus.hasRoot,
+                rootManager = rootStatus.manager.displayName,
+                rootVersion = rootStatus.version,
+                partitions = partitions
             )
-            Logger.i(TAG, "探测完成: ${result.shortInfo}, root=$hasRoot, 分区=${partitions.size}")
+            Logger.i(TAG, "探测完成: ${result.shortInfo}, root=${result.rootSummary}, 分区=${partitions.size}")
             result
         } catch (e: Exception) {
             Logger.e(TAG, "探测失败: ${e.message}")

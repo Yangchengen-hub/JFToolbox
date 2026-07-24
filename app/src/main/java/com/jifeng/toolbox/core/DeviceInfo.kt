@@ -17,6 +17,8 @@ data class DeviceInfo(
     val bootloader: String = "未知",
     val connectionMode: ConnectionMode = ConnectionMode.NONE,
     val hasRoot: Boolean? = null,
+    val rootManager: String = "",
+    val rootVersion: String = "",
     val partitions: List<Partition> = emptyList()
 ) {
     val displayName: String
@@ -24,6 +26,14 @@ data class DeviceInfo(
 
     val shortInfo: String
         get() = "$displayName · Android $androidVersion · ${connectionMode.label}"
+
+    /** Root 状态的可读摘要，供首页/设备卡片展示。 */
+    val rootSummary: String
+        get() = when {
+            hasRoot != true -> "无 Root"
+            rootManager.isNotBlank() -> "$rootManager${if (rootVersion.isNotBlank()) " v$rootVersion" else ""}"
+            else -> "已 Root (通用)"
+        }
 }
 
 enum class ConnectionMode(val label: String) {

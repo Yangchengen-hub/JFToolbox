@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import com.jifeng.toolbox.adb.AdbManager
+import com.jifeng.toolbox.core.CrashHandler
 import com.jifeng.toolbox.core.ThemeManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +20,9 @@ class JFToolboxApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        // 稳定性保障：全局崩溃捕获（最先安装，接管后续所有线程异常）
+        CrashHandler.install(this)
 
         // Init subsystems
         ThemeManager.init(this)

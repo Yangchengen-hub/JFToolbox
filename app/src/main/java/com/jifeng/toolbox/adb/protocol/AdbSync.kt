@@ -1,6 +1,7 @@
 package com.jifeng.toolbox.adb.protocol
 
 import com.jifeng.toolbox.core.Logger
+import com.jifeng.toolbox.core.SafetyChecker
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -20,6 +21,11 @@ class AdbSync(private val conn: AdbConnection) {
     fun push(localPath: String, remotePath: String, mtime: Int = (System.currentTimeMillis() / 1000).toInt()): Boolean {
         val local = File(localPath)
         if (!local.exists()) return false
+        // 路径安全校验：防目录穿越
+        when (SafetyChecker.validateRemotePath(remotePath)) {
+            is SafetyChecker.CheckResult.Deny -> { Logger.e("AdbSync", "push 路径校验失败: $remotePath"); return false }
+            else -> {}
+        }
         val s = conn.openStream("sync:")
         return try {
             val pathBytes = remotePath.toByteArray()
@@ -59,6 +65,11 @@ class AdbSync(private val conn: AdbConnection) {
 
     /** 从设备拉取文件到本地。 */
     fun pull(remotePath: String, localPath: String): Boolean {
+        // 路径安全校验：防目录穿越
+        when (SafetyChecker.validateRemotePath(remotePath)) {
+            is SafetyChecker.CheckResult.Deny -> { Logger.e("AdbSync", "pull 路径校验失败: $remotePath"); return false }
+            else -> {}
+        }
         val s = conn.openStream("sync:")
         return try {
             val pathBytes = remotePath.toByteArray()

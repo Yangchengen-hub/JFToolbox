@@ -6,6 +6,7 @@ import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbInterface
 import com.jifeng.toolbox.core.Logger
+import com.jifeng.toolbox.core.SafetyChecker
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -103,6 +104,14 @@ class FastbootClient {
     }
 
     fun erase(partition: String, onInfo: (String) -> Unit = {}): Boolean {
+        // 安全校验：禁止擦除致命分区
+        when (val check = SafetyChecker.validateErase(partition)) {
+            is SafetyChecker.CheckResult.Deny -> {
+                onInfo("安全拦截: ${check.message}"); return false
+            }
+            is SafetyChecker.CheckResult.Warn -> onInfo("警告: ${check.message}")
+            else -> {}
+        }
         return try {
             sendCommand("erase:$partition")
             collectUntilTerminal(onInfo).type == "OKAY"
@@ -133,8 +142,17 @@ class FastbootClient {
 
     /** 下载 + 刷写到指定分区。 */
     fun flash(partition: String, data: ByteArray, onInfo: (String) -> Unit = {}, onProgress: (Int) -> Unit = {}): Boolean {
-        if (data.size > maxDownloadSize) {
-            onInfo("镜像 ${data.size} 超过设备最大下载尺寸 $maxDownloadSize"); return false
+        // 安全校验：分区白名单 + 魔数校验 + 大小限制
+        when (val check = SafetyChecker.validateFlash(partition, data)) {
+            is SafetyChecker.CheckResult.Deny -> {
+                onInfo("安全拦截: ${check.message}"); return false
+            }
+            is SafetyChecker.CheckResult.Warn -> onInfo("警告: ${check.message}")
+            else -> {}
+        }
+        when (val sizeCheck = SafetyChecker.validateDownloadSize(data.size.toLong(), maxDownloadSize)) {
+            is SafetyChecker.CheckResult.Deny -> { onInfo("安全拦截: ${sizeCheck.message}"); return false }
+            else -> {}
         }
         onInfo("下载 $partition 镜像 (${data.size} bytes)")
         if (!download(data, onProgress)) { onInfo("下载失败"); return false }

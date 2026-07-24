@@ -1,6 +1,7 @@
 package com.jifeng.toolbox.edl
 
 import com.jifeng.toolbox.core.Logger
+import com.jifeng.toolbox.core.SafetyChecker
 import org.apache.commons.compress.archivers.zip.ZipFile
 import java.io.File
 
@@ -64,6 +65,14 @@ class EdlRescuer(private val firehose: FirehoseProtocol, private val parser: Raw
     fun detectBlackBrick(): Boolean {
         val info = firehose.getStorageInfo() ?: return false
         Logger.i("EdlRescuer", "存储信息: partitions=${info.partitionCount} sectors=${info.totalSectors} size=${info.totalBytes}")
+        // 双重校验：SafetyChecker 也对分区数做完整性检查
+        when (SafetyChecker.validateGpt(info.partitionCount)) {
+            is SafetyChecker.CheckResult.Deny -> {
+                Logger.e("EdlRescuer", "SafetyChecker 拦截: GPT 分区数=${info.partitionCount} → 判定黑砖")
+                return true
+            }
+            else -> {}
+        }
         return info.isBlackBrick
     }
 

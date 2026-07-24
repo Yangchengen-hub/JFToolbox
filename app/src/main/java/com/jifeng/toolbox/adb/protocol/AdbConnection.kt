@@ -5,12 +5,12 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * ADB 连接: 完成握手 + RSA 授权, 并驱动接收线程分发 WRTE 到各 AdbStream。
+ * ADB 连接: 握手 + RSA 授权 + 接收线程分发 + 流写流控。
  *
  * 握手状态机:
  *   host → CNXN(VERSION, MAX, banner)
  *   device → CNXN (无授权) | AUTH(AUTH_TOKEN, token)
- *   若 AUTH_TOKEN: host → AUTH(AUTH_SIGNATURE, sign(token)); 失败则 host → AUTH(AUTH_RSAPUBLICKEY, pubkey)
+ *   AUTH_TOKEN → host 回 AUTH_SIGNATURE; 被拒则回 AUTH_RSAPUBLICKEY
  *   device → CNXN (用户在屏上同意后)
  */
 class AdbConnection(
@@ -24,34 +24,30 @@ class AdbConnection(
     private val nextLocalId = AtomicInteger(1)
     private var rxThread: Thread? = null
 
-    fun connect(): Boolean {
-        return try {
-            transport.send(AdbMessage(AdbProtocol.A_CNXN, AdbProtocol.VERSION, AdbProtocol.MAX_PAYLOAD,
-                AdbProtocol.hostBanner().toByteArray()))
-            handleAuth()
-            connected = true
-            startReceiver()
-            Logger.i("AdbConn", "已连接, 授权完成")
-            true
-        } catch (e: Exception) {
-            Logger.e("AdbConn", "连接失败: ${e.message}")
-            false
-        }
+    fun connect(): Boolean = try {
+        transport.send(AdbMessage(AdbProtocol.A_CNXN, AdbProtocol.VERSION, AdbProtocol.MAX_PAYLOAD,
+            AdbProtocol.hostBanner().toByteArray()))
+        handleAuth()
+        connected = true
+        startReceiver()
+        Logger.i("AdbConn", "已连接, 授权完成")
+        true
+    } catch (e: Exception) {
+        Logger.e("AdbConn", "连接失败: ${e.message}")
+        false
     }
 
     private fun handleAuth() {
-        // 最多 3 轮: token → signature → pubkey
-        repeat(3) {
+        repeat(4) {
             val msg = transport.receive()
             when (msg.command) {
-                AdbProtocol.A_CNXN -> { return }   // 已连上
+                AdbProtocol.A_CNXN -> return
                 AdbProtocol.A_AUTH -> when (msg.arg0) {
                     AdbProtocol.AUTH_TOKEN -> {
-                        val sig = keys.signToken(msg.data)
-                        transport.send(AdbMessage(AdbProtocol.A_AUTH, AdbProtocol.AUTH_SIGNATURE, 0, sig))
+                        transport.send(AdbMessage(AdbProtocol.A_AUTH, AdbProtocol.AUTH_SIGNATURE, 0,
+                            keys.signToken(msg.data)))
                     }
                     else -> {
-                        // signature 被拒, 回传公钥请求授权
                         val pub = (keys.adbPublicKeyBase64() + "\u0000极风工具箱").toByteArray()
                         transport.send(AdbMessage(AdbProtocol.A_AUTH, AdbProtocol.AUTH_RSAPUBLICKEY, 0, pub))
                     }
@@ -68,22 +64,26 @@ class AdbConnection(
                 try {
                     val msg = transport.receive()
                     when (msg.command) {
-                        AdbProtocol.A_WRTE -> streams[msg.arg1]?.feed(msg.data)
-                            ?.also { transport.send(AdbMessage(AdbProtocol.A_OKAY, msg.arg1, msg.arg0, ByteArray(0))) }
-                        AdbProtocol.A_OKAY -> streams[msg.arg1]?.let { it.remoteId = msg.arg0 }
+                        AdbProtocol.A_WRTE -> {
+                            streams[msg.arg1]?.let { s ->
+                                s.feed(msg.data)
+                                transport.send(AdbMessage(AdbProtocol.A_OKAY, msg.arg1, msg.arg0, ByteArray(0)))
+                            }
+                        }
+                        AdbProtocol.A_OKAY -> {
+                            streams[msg.arg1]?.let { it.remoteId = msg.arg0; it.onOkay() }
+                        }
                         AdbProtocol.A_CLSE -> streams.remove(msg.arg1)?.markClosed()
-                        AdbProtocol.A_CNXN -> { /* 重连 */ }
                         else -> {}
                     }
                 } catch (e: Exception) {
-                    if (connected) Logger.w("AdbConn", "接收线程异常: ${e.message}")
+                    if (connected) Logger.w("AdbConn", "接收异常: ${e.message}")
                     break
                 }
             }
         }, "adb-rx").apply { isDaemon = true; start() }
     }
 
-    /** 打开 shell 流。dest 形如 "shell:getprop" 或 "shell:ls -l /"。 */
     fun openStream(dest: String): AdbStream {
         val id = nextLocalId.getAndIncrement()
         val s = AdbStream(id, dest)
@@ -92,11 +92,37 @@ class AdbConnection(
         return s
     }
 
-    /** 执行 shell 命令并返回全部输出 (同步, 命令结束后流自动关闭)。 */
+    /** 向流写入数据 (遵循 ADB 流控, 等待 OKAY)。 */
+    fun writeStream(stream: AdbStream, data: ByteArray, timeoutMs: Long = 10_000) {
+        var off = 0
+        val chunkSize = 64 * 1024
+        while (off < data.size) {
+            val len = minOf(data.size - off, chunkSize)
+            if (!stream.writeWindow.tryAcquire(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS))
+                throw RuntimeException("ADB 流控超时")
+            if (stream.remoteId == 0) {
+                // 等首个 OKAY 建立 remoteId
+                Thread.sleep(20)
+            }
+            transport.send(AdbMessage(AdbProtocol.A_WRTE, stream.localId, stream.remoteId,
+                data.copyOfRange(off, off + len)))
+            off += len
+        }
+    }
+
+    fun closeStream(stream: AdbStream) {
+        if (stream.closed) return
+        try {
+            transport.send(AdbMessage(AdbProtocol.A_CLSE, stream.localId, stream.remoteId, ByteArray(0)))
+        } catch (_: Exception) {}
+        streams.remove(stream.localId)?.markClosed()
+    }
+
+    /** 执行 shell 命令, 返回全部输出。 */
     fun shell(cmd: String, timeoutMs: Long = 15_000): String {
         val s = openStream("shell:$cmd")
-        val out = s.readAll().also { _ -> }
-        // readAll 在 CLSE 后返回; 若超时手动关闭
+        val out = s.readAll(timeoutMs)
+        closeStream(s)
         return String(out).trim()
     }
 

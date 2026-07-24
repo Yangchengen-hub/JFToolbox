@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     private fun refreshDevice() {
         binding.txtStatus.text = "🔍 正在探测设备..."
         CoroutineScope(Dispatchers.Main).launch {
-            val serials = withContext(Dispatchers.IO) { AdbManager.instance.listDevices() }
+            val serials = withContext(Dispatchers.IO) { AdbManager.listDevices() }
             if (serials.isEmpty()) {
                 binding.txtStatus.text = "⚠️ 未检测到设备\n请通过 OTG 线连接被控设备并授权 USB 调试"
                 currentDevice = null

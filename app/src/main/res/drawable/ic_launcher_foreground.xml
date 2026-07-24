@@ -1,13 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  极风工具箱 启动图标前景
+  齿轮 + 扳手 (工具箱主题), 小米风格白色质感
+  安全区域: 中心 72x72 (viewport 36~72), 中心点 (54,54)
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <!-- 小米风格圆形主体 + 齿轮 -->
+
+    <!-- ===== 齿轮主体 (8 齿) ===== -->
+    <!-- 齿轮外环 + 齿: 以 (54,54) 为圆心, 外径 28, 齿根径 22 -->
+
+    <!-- 齿 0 (上) -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M54,30 m-18,0 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0"/>
-    <path android:fillColor="#1A73E8"
-        android:pathData="M54,40 L57,46 L64,46 L58,50 L60,57 L54,53 L48,57 L50,50 L44,46 L51,46 Z"/>
-    <!-- 右侧齿轮 -->
-    <path android:fillColor="#FFFFFF" android:alpha="0.85"
-        android:pathData="M72,48 h4 v4 h-4 z M72,56 h4 v4 h-4 z M76,52 h4 v4 h-4 z M68,52 h4 v4 h-4 z"/>
+        android:pathData="M50,26 h8 v8 h-8 z"/>
+    <!-- 齿 1 (右上) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M67.2,33.2 l5.6,5.6 l-5.6,5.6 l-5.6,-5.6 z"/>
+    <!-- 齿 2 (右) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M74,50 h8 v8 h-8 z"/>
+    <!-- 齿 3 (右下) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M67.2,67.2 l5.6,-5.6 l5.6,5.6 l-5.6,5.6 z"/>
+    <!-- 齿 4 (下) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M50,74 h8 v8 h-8 z"/>
+    <!-- 齿 5 (左下) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M35.2,69.2 l5.6,-5.6 l5.6,5.6 l-5.6,5.6 z"/>
+    <!-- 齿 6 (左) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M26,50 h8 v8 h-8 z"/>
+    <!-- 齿 7 (左上) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M35.2,33.2 l5.6,5.6 l-5.6,5.6 l-5.6,-5.6 z"/>
+
+    <!-- 齿轮主圆盘 -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M54,54 m-22,0 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0"/>
+
+    <!-- 齿轮内环 (橙色镂空, 露出背景) -->
+    <path android:fillColor="#FF6900"
+        android:pathData="M54,54 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0"/>
+
+    <!-- ===== 扳手 (斜跨齿轮, 白色) ===== -->
+    <!-- 扳手柄: 从左下到右上的斜条 -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M38,62 L42,58 L66,34 L70,38 L46,62 L42,66 Z"/>
+    <!-- 扳手开口 (左下端, 橙色镂空) -->
+    <path android:fillColor="#FF6900"
+        android:pathData="M36,64 L40,60 L44,64 L40,68 Z"/>
+    <!-- 扳手开口 (右上端, 橙色镂空) -->
+    <path android:fillColor="#FF6900"
+        android:pathData="M64,32 L68,36 L72,32 L68,28 Z"/>
+
+    <!-- ===== 中心 "JF" 标识 ===== -->
+    <!-- J 字 -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M51,45 h4 v8 a3,3 0 0,1 -6,0 v-2 h3 v2 a0,0 0 0,0 0,0 v-8 z"/>
+    <!-- F 字 -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M56,45 h7 v3 h-4 v2 h3 v3 h-3 v3 h-3 z"/>
+
 </vector>

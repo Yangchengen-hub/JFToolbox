@@ -20,10 +20,10 @@ class FreezeActivity : AppCompatActivity() {
 
     // 预置冻结清单（MVP 内置；后续改为云端拉取）
     private val presets = listOf(
-        FreezeItem("厂商云控服务", "com.xiaomi.miui.analytics", "com.miui.cloud"),
-        FreezeItem("系统更新组件", "com.android.updater", "com.sec.android.systemupdate"),
-        FreezeItem("出厂广告组件", "com.miui.analytics", "com.android.adservices"),
-        FreezeItem("数据上报/追踪", "com.xiaomi.miui.miuicontrolcenter", "com.android.settings.intelligence"),
+        FreezeItem("厂商云控服务", listOf("com.xiaomi.miui.analytics", "com.miui.cloud")),
+        FreezeItem("系统更新组件", listOf("com.android.updater", "com.sec.android.systemupdate")),
+        FreezeItem("出厂广告组件", listOf("com.miui.analytics", "com.android.adservices")),
+        FreezeItem("数据上报/追踪", listOf("com.xiaomi.miui.miuicontrolcenter", "com.android.settings.intelligence")),
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,11 +33,11 @@ class FreezeActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val adapter = FreezeListAdapter(presets) { item ->
-            val serial = AdbManager.instance.listDevices().firstOrNull() ?: return@FreezeListAdapter toast("无设备")
+            val serial = AdbManager.listDevices().firstOrNull() ?: return@FreezeListAdapter toast("无设备")
             CoroutineScope(Dispatchers.IO).launch {
                 item.pkgs.forEach { pkg ->
-                    AdbManager.instance.shell(serial, "pm disable-user --user 0 $pkg")
-                    AdbManager.instance.shell(serial, "pm hide --user 0 $pkg")
+                    AdbManager.shell(serial, "pm disable-user --user 0 $pkg")
+                    AdbManager.shell(serial, "pm hide --user 0 $pkg")
                 }
                 runOnUiThread { toast("已冻结: ${item.category}") }
             }

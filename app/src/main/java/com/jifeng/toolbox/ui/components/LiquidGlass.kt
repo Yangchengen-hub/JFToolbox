@@ -80,7 +80,7 @@ fun LiquidGlassCard(
     content: @Composable () -> Unit
 ) {
     LiquidGlassBox(
-        modifier = modifier.padding(padding.dp * 0),
+        modifier = modifier.padding(0.dp),
         cornerRadius = cornerRadius,
         tintAlpha = 0.7f
     ) {

@@ -93,6 +93,7 @@ class AdbSync(private val conn: AdbConnection) {
                     }
                 }
             }
+            false
         } catch (e: Exception) {
             Logger.e("AdbSync", "pull 异常: ${e.message}"); false
         } finally {

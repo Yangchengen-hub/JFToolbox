@@ -27,7 +27,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Cpu
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.EnhancedEncryption
 import androidx.compose.material.icons.filled.Flaky
@@ -210,7 +210,7 @@ class MainComposeActivity : ComponentActivity() {
                         Text("厂商: ${device!!.manufacturer} · 主板: ${device!!.board}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Root: ${if (device!!.hasRoot) "✅ 已获取" else "❌ 未获取"} · 模式: ${device!!.connectionMode.label}",
+                        Text("Root: ${if (device!!.hasRoot == true) "✅ 已获取" else "❌ 未获取"} · 模式: ${device!!.connectionMode.label}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -257,7 +257,7 @@ class MainComposeActivity : ComponentActivity() {
         Tile("全能下载器", Icons.Default.CloudDownload, DownloaderComposeActivity::class.java),
         Tile("固件下载", Icons.Default.Download, FirmwareComposeActivity::class.java),
         Tile("全能安装器", Icons.Default.Apps, InstallerComposeActivity::class.java),
-        Tile("内核刷写", Icons.Default.Cpu, KernelComposeActivity::class.java),
+        Tile("内核刷写", Icons.Default.Memory, KernelComposeActivity::class.java),
         Tile("一键备份", Icons.Default.Storage, BackupComposeActivity::class.java),
         Tile("智能冻结", Icons.Default.Flaky, FreezeComposeActivity::class.java),
         Tile("玩机工具", Icons.Default.Security, TweakComposeActivity::class.java),

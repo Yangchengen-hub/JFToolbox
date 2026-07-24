@@ -99,7 +99,7 @@ object ApkScanner {
      * 使用 ADB shell find 命令全量扫描。
      */
     suspend fun scanRemote(serial: String, rootPath: String = "/sdcard"): List<ApkEntry> = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         if (!adb.isConnected) {
             _state.value = ScanState.Failed("ADB 未连接")
             return@withContext emptyList()
@@ -145,7 +145,7 @@ object ApkScanner {
      * 流程: push APK → pm install → 清理临时文件
      */
     suspend fun installRemote(serial: String, apkPath: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         if (!adb.isConnected) return@withContext Pair(false, "ADB 未连接")
 
         val remoteTmp = "/data/local/tmp/install_${System.currentTimeMillis()}.apk"

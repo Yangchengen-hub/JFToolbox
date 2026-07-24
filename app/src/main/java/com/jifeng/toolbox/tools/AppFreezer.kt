@@ -45,7 +45,7 @@ object AppFreezer {
      * 列出设备上所有第三方应用及其冻结状态。
      */
     suspend fun listThirdPartyApps(serial: String): List<AppEntry> = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         if (!adb.isConnected) {
             _state.value = FreezeState.Failed("ADB 未连接")
             return@withContext emptyList()
@@ -78,7 +78,7 @@ object AppFreezer {
      * 冻结单个应用。
      */
     suspend fun freeze(serial: String, packageName: String): Boolean = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val result = adb.shell(serial, "pm disable-user --user 0 $packageName").orEmpty()
         val ok = result.contains("disabled", ignoreCase = true) || result.contains("true", ignoreCase = true)
         Logger.i(TAG, "冻结 $packageName: ${if (ok) "成功" else "失败"}")
@@ -89,7 +89,7 @@ object AppFreezer {
      * 解冻单个应用。
      */
     suspend fun unfreeze(serial: String, packageName: String): Boolean = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val result = adb.shell(serial, "pm enable $packageName").orEmpty()
         val ok = result.contains("enabled", ignoreCase = true) || result.contains("true", ignoreCase = true) || result.contains("1")
         Logger.i(TAG, "解冻 $packageName: ${if (ok) "成功" else "失败"}")
@@ -130,7 +130,7 @@ object AppFreezer {
      * 用户级卸载 (保留 APK, 仅移除当前用户)。
      */
     suspend fun uninstallUser(serial: String, packageName: String): Boolean = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val result = adb.shell(serial, "pm uninstall --user 0 $packageName").orEmpty()
         val ok = result.contains("Success", ignoreCase = true)
         Logger.i(TAG, "卸载 $packageName: ${if (ok) "成功" else "失败"}")

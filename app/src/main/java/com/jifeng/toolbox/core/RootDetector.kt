@@ -43,7 +43,7 @@ object RootDetector {
      * @param serial 设备序列号（兼容参数，内部使用当前连接）
      */
     suspend fun detect(serial: String): RootStatus {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         if (!adb.isConnected) {
             Logger.w(TAG, "ADB 未连接，无法探测 Root")
             return RootStatus()
@@ -97,7 +97,7 @@ object RootDetector {
         // 特征路径: /sbin/.magisk (新版) 或 magisk 命令
         val path = adb.shell(serial, "ls -d /sbin/.magisk /data/adb/magisk 2>/dev/null").orEmpty().trim()
         val ver = adb.shell(serial, "su 0 magisk -V 2>/dev/null").orEmpty().trim().lineOrNull(0)
-        val hasMagisk = path.isNotBlank() || ver.isNotBlank()
+        val hasMagisk = path.isNotBlank() || !ver.isNullOrBlank()
         if (!hasMagisk) return null
         return RootStatus(
             manager = RootManager.MAGISK,
@@ -112,7 +112,7 @@ object RootDetector {
         // 特征路径: /data/adb/ksu 或 ksu 命令
         val path = adb.shell(serial, "ls -d /data/adb/ksu 2>/dev/null").orEmpty().trim()
         val ver = adb.shell(serial, "su 0 ksud --version 2>/dev/null").orEmpty().trim().lineOrNull(0)
-        val hasKsu = path.isNotBlank() || ver.isNotBlank()
+        val hasKsu = path.isNotBlank() || !ver.isNullOrBlank()
         if (!hasKsu) return null
         return RootStatus(
             manager = RootManager.KERNELSU,
@@ -127,7 +127,7 @@ object RootDetector {
         // 特征路径: /data/adb/ap 或 apd 命令
         val path = adb.shell(serial, "ls -d /data/adb/ap 2>/dev/null").orEmpty().trim()
         val ver = adb.shell(serial, "su 0 apd --version 2>/dev/null").orEmpty().trim().lineOrNull(0)
-        val hasApatch = path.isNotBlank() || ver.isNotBlank()
+        val hasApatch = path.isNotBlank() || !ver.isNullOrBlank()
         if (!hasApatch) return null
         return RootStatus(
             manager = RootManager.APATCH,

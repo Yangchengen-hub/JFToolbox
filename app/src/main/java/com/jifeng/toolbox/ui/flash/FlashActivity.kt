@@ -90,9 +90,9 @@ class FlashActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.Main).launch {
             val (ok, msg) = withContext(Dispatchers.IO) {
                 val serial = intent.getStringExtra("serial")
-                    ?: AdbManager.instance.listDevices().firstOrNull()
+                    ?: AdbManager.listDevices().firstOrNull()
                     ?: return@withContext Pair(false, "无设备")
-                AdbManager.instance.parseAndFlashZip(serial, zip)
+                AdbManager.parseAndFlashZip(serial, zip)
             }
             binding.txtLog.append(if (ok) "✅ $msg\n" else "❌ 失败: $msg\n")
         }
@@ -106,9 +106,9 @@ class FlashActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.Main).launch {
             val ok = withContext(Dispatchers.IO) {
                 val serial = intent.getStringExtra("serial")
-                    ?: AdbManager.instance.listDevices().firstOrNull()
+                    ?: AdbManager.listDevices().firstOrNull()
                     ?: return@withContext false
-                AdbManager.instance.fastbootFlash(serial, part, img)
+                AdbManager.fastbootFlash(serial, part, img)
             }
             binding.txtLog.append(if (ok) "✅ 刷写完成\n" else "❌ 刷写失败\n")
         }

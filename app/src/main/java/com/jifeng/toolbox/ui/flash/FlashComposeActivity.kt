@@ -260,7 +260,7 @@ private fun EdlTab() {
 @Composable
 private fun PartitionEditorTab() {
     val scope = rememberCoroutineScope()
-    val parts = remember { mutableStateListOf<com.jifeng.toolbox.core.DeviceInfo.Partition>() }
+    val parts = remember { mutableStateListOf<com.jifeng.toolbox.core.Partition>() }
     var loading by remember { mutableStateOf(false) }
 
     LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {

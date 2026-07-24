@@ -88,7 +88,7 @@ object TerminalEngine {
     // ---------- Python ----------
 
     private fun executePython(serial: String, code: String): String {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         // 检测 python3
         val pyCheck = adb.shell(serial, "command -v python3 2>/dev/null").orEmpty().trim()
         if (pyCheck.isBlank()) {
@@ -106,7 +106,7 @@ object TerminalEngine {
     // ---------- JavaScript ----------
 
     private fun executeJavaScript(serial: String, code: String): String {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val nodeCheck = adb.shell(serial, "command -v node 2>/dev/null").orEmpty().trim()
         if (nodeCheck.isBlank()) {
             return "❌ 被控设备未安装 Node.js。\n提示: 在 Termux 中执行 pkg install nodejs"
@@ -121,7 +121,7 @@ object TerminalEngine {
     // ---------- Lua ----------
 
     private fun executeLua(serial: String, code: String): String {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val luaCheck = adb.shell(serial, "command -v lua 2>/dev/null").orEmpty().trim()
         if (luaCheck.isBlank()) {
             return "❌ 被控设备未安装 Lua。\n提示: 在 Termux 中执行 pkg install lua"
@@ -136,7 +136,7 @@ object TerminalEngine {
     // ---------- C/C++ ----------
 
     private fun executeCpp(serial: String, code: String): String {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         // 检测编译器
         val gccCheck = adb.shell(serial, "command -v gcc 2>/dev/null").orEmpty().trim()
         val clangCheck = adb.shell(serial, "command -v clang 2>/dev/null").orEmpty().trim()
@@ -212,7 +212,7 @@ object TerminalEngine {
      * 将多行代码写入临时文件, push 到设备后执行。
      */
     private fun executeScriptFile(serial: String, code: String, ext: String, interpreter: String): String {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val remoteScript = "/data/local/tmp/jf_${System.currentTimeMillis()}$ext"
         val localTmp = File.createTempFile("jf_script", ext)
         try {

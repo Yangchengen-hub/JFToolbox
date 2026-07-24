@@ -63,7 +63,7 @@ object BackupManager {
         localDir: String,
         includeLarge: Boolean = false
     ): Boolean = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         if (!adb.isConnected) {
             _state.value = BackupState.Failed("ADB 未连接")
             return@withContext false
@@ -136,7 +136,7 @@ object BackupManager {
         ZipOutputStream(packA.outputStream()).use { zos ->
             for (part in critical) {
                 val remoteGz = "$REMOTE_DIR/${part}.img.gz"
-                pullAndZip(adb, serial, remoteGz, "${part}.img.gz", zos) && run { aCount++ }
+                if (pullAndZip(adb, serial, remoteGz, "${part}.img.gz", zos)) aCount++
             }
         }
 
@@ -146,7 +146,7 @@ object BackupManager {
             ZipOutputStream(packB.outputStream()).use { zos ->
                 for (part in large) {
                     val remoteGz = "$REMOTE_DIR/${part}.img.gz"
-                    pullAndZip(adb, serial, remoteGz, "${part}.img.gz", zos) && run { bCount++ }
+                    if (pullAndZip(adb, serial, remoteGz, "${part}.img.gz", zos)) bCount++
                 }
             }
         }

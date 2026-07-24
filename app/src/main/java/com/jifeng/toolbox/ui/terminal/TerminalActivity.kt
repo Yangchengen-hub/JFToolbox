@@ -32,10 +32,10 @@ class TerminalActivity : AppCompatActivity() {
         binding.btnRun.setOnClickListener {
             val cmd = binding.edtCmd.text.toString().trim()
             if (cmd.isBlank()) return@setOnClickListener
-            val serial = AdbManager.instance.listDevices().firstOrNull() ?: ""
+            val serial = AdbManager.listDevices().firstOrNull() ?: ""
             binding.txtOutput.append("\n$ $cmd\n")
             CoroutineScope(Dispatchers.IO).launch {
-                val out = AdbManager.instance.shell(serial, cmd).orEmpty()
+                val out = AdbManager.shell(serial, cmd).orEmpty()
                 runOnUiThread { binding.txtOutput.append("$out\n") }
             }
         }

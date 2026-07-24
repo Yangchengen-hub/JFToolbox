@@ -22,7 +22,7 @@ object DeviceDetector {
 
     suspend fun probeAdbDevice(serial: String): DeviceInfo = withContext(Dispatchers.IO) {
         Logger.i(TAG, "开始探测设备 $serial")
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val info = DeviceInfo(serial = serial, connectionMode = ConnectionMode.USB_ADB)
 
         try {
@@ -85,7 +85,7 @@ object DeviceDetector {
     }
 
     private fun readPartitions(serial: String): List<Partition> {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         val out = adb.shell(serial, "ls -la /dev/block/by-name 2>/dev/null").orEmpty()
         if (out.isBlank()) return emptyList()
         val list = mutableListOf<Partition>()
@@ -111,7 +111,7 @@ object DeviceDetector {
             "9008", "edl" -> "reboot edl"
             else -> "reboot"
         }
-        AdbManager.instance.shell(serial, cmd)
+        AdbManager.shell(serial, cmd)
         Logger.i(TAG, "$serial → 重启到 $target")
     }
 }

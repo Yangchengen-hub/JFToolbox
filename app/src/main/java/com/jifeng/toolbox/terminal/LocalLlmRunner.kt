@@ -47,7 +47,7 @@ object LocalLlmRunner {
      * 在被控设备上探测可用的 LLM 后端。
      */
     suspend fun detect(serial: String): LlmEnvironment = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         if (!adb.isConnected) return@withContext LlmEnvironment(LlmBackend.NONE, "")
 
         // 1. 检测 ollama
@@ -113,7 +113,7 @@ object LocalLlmRunner {
      * @return 推理结果文本
      */
     suspend fun infer(serial: String, env: LlmEnvironment, prompt: String): String = withContext(Dispatchers.IO) {
-        val adb = AdbManager.instance
+        val adb = AdbManager
         if (!env.backend.isAvailable) {
             return@withContext "❌ 未检测到本地 LLM 运行环境。\n\n" +
                 "请在被控设备上安装以下任一方案:\n" +

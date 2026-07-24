@@ -9,4 +9,14 @@
         <item name="android:windowBackground">#F5F7FA</item>
         <item name="android:textColor">#212121</item>
     </style>
+
+    <!-- 极风工具箱 功能卡片样式 (液态玻璃风格) -->
+    <style name="JF.FeatureCard" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">#FFFFFF</item>
+        <item name="contentPadding">12dp</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">#1A1976D2</item>
+    </style>
 </resources>

@@ -24,10 +24,10 @@ class WirelessDebugActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.btnEnableTcp.setOnClickListener {
-            val serial = AdbManager.instance.listDevices().firstOrNull() ?: return@setOnClickListener toast("无 USB 设备")
+            val serial = AdbManager.listDevices().firstOrNull() ?: return@setOnClickListener toast("无 USB 设备")
             CoroutineScope(Dispatchers.IO).launch {
-                AdbManager.instance.shell(serial, "setprop service.adb.tcp.port 5555")
-                AdbManager.instance.shell(serial, "stop adbd; start adbd")
+                AdbManager.shell(serial, "setprop service.adb.tcp.port 5555")
+                AdbManager.shell(serial, "stop adbd; start adbd")
                 runOnUiThread { toast("已开启 TCP/IP 5555，请通过 IP 连接") }
             }
         }

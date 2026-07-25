@@ -18,13 +18,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platforms;android-34 build-tools;34.0.0'
+      - name: Debug environment
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "PATH=$PATH"
+          which sdkmanager || echo "sdkmanager not found"
+          ls -la /usr/local/lib/android/ 2>/dev/null || echo "no /usr/local/lib/android"
+          ls -la $ANDROID_HOME 2>/dev/null || echo "no ANDROID_HOME dir"
+          find /usr/local -name "sdkmanager" 2>/dev/null || true
+          find /opt -name "sdkmanager" 2>/dev/null || true
 
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+      - name: Setup Android SDK
+        run: |
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Download Gradle Wrapper JAR
         run: |

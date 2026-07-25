@@ -19,12 +19,12 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platforms;android-34 build-tools;34.0.0'
-
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          yes | sdkmanager --sdk_root=${ANDROID_HOME} --licenses || true
+          sdkmanager --sdk_root=${ANDROID_HOME} "platforms;android-34" "build-tools;34.0.0"
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Download Gradle Wrapper JAR
         run: |

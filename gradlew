@@ -89,8 +89,7 @@ location of your Java installation."
     fi
 else
     JAVACMD=java
-    if ! command -v java >/dev/null 2>&1
-    then
+    if ! command -v java >/dev/null 2>&1 ; then
         die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
 
 Please set the JAVA_HOME variable in your environment to match the
@@ -99,84 +98,21 @@ location of your Java installation."
 fi
 
 # Increase the maximum file descriptors if we can.
-if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
-    case $MAX_FD in #(
-      max*)
-        MAX_FD=$( ulimit -H -n ) || \
-        warn "Could not query maximum file descriptor limit"
-    esac
-    case $MAX_FD in  #(
-      '' | soft) :;; #(
-      *)
-        ulimit -n "$MAX_FD" || \
-        warn "Could not set maximum file descriptor limit to $MAX_FD"
-    esac
-fi
-
-# Collect all arguments for the java command, stacking in reverse order:
-#   * args from the command line
-#   * the main class name
-#   * -classpath
-#   * -D...appname settings
-#   * --module-path (only if needed)
-#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and GRADLE_OPTS environment variables.
-
-# For Cygwin or MSYS, switch paths to Windows format before running java
-if "$cygwin" || "$msys" ; then
-    APP_HOME=$( cygpath --path --mixed "$APP_HOME" )
-    CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )
-
-    JAVACMD=$( cygpath --unix "$JAVACMD" )
-
-    # Now convert the arguments - kludge to limit ourselves to /bin/sh
-    for arg do
-        if
-            case $arg in                                #(
-              -*)   false ;;                            # don't mess with options #(
-              /?*)  t=${arg#/} t=/${t%%/*}              # looks like a POSIX filepath
-                    [ -e "$t" ] ;;                      #(
-              *)    false ;;
-            esac
-        then
-            arg=$( cygpath --path --ignore --mixed "$arg" )
+if ! "$cygwin" && ! "$msys" && ! "$darwin" ; then
+    MAX_FD_LIMIT=$( ulimit -H -n )
+    test $? -eq 0 || die "Could not query maximum file descriptor limit"
+    if [ "$MAX_FD_LIMIT" != 'unlimited' ] ; then
+        if [ "$(expr "$MAX_FD_LIMIT" : '\\(.*[0-9]\\)')" = "$MAX_FD_LIMIT" ] ; then
+            ulimit -n $MAX_FD_LIMIT
+            test $? -eq 0 || die "Could not set maximum file descriptor limit to $MAX_FD_LIMIT"
         fi
-        # Roll the args list around exactly as many times as the number of
-        # args, so each arg winds up back in the position where it started, but
-        # possibly modified.
-        #
-        # NB: a `for` loop captures its iteration list before it begins, so
-        # changing the positional parameters here affects neither the number of
-        # iterations, nor the values presented in `arg`.
-        shift                   # remove old arg
-        set -- "$@" "$arg"      # push replacement arg
-    done
+    fi
 fi
 
-DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
-
-# Collect all arguments for the java command:
-#   * DEFAULT_JVM_OPTS, JAVA_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
-#     and any embedded shellness will be escaped.
-#   * CLASSPATH and -classpath are merged.
-#   * arguments are escaped for shelling out to java.
-
-# shellcheck disable=SC2034
-save () {
-    for i do printf %s\\n "$i" | sed 's/\n/~N/g; s/\$/~S/g' >> "$1" ; done
-    printf \\n >> "$1"
-}
-# shellcheck disable=SC2034
-restore () {
-    <"$1" sed 's/~S/\$/g; s/~N/\n/g' | while IFS= read -r line; do echo "$line"; done
-}
-
-optsEnvironmentVar () {
-    # Get the environment variable value, with a default.
-    eval "value=\${$1-}"
-    echo "$value"
-}
-
-# Collect JVM options from environment variables
+# Collect all arguments for the java command;
+#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and GRADLE_OPTS environment variables can have arbitrary spaces in them.
+#   * We put each environment variable into the eval command in quotes so that it is word-split properly
+#   * We do the same for '$@' so that arguments with spaces are properly handled.
 JAVA_OPTS=${JAVA_OPTS:-}
 GRADLE_OPTS=${GRADLE_OPTS:-"-Dorg.gradle.daemon=false"}
 
@@ -190,7 +126,7 @@ for arg in "$@" ; do
 done
 
 # Add default JVM options
-eval "set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS org.gradle.wrapper.GradleWrapperMain $APP_ARGS"
+eval "set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS -classpath \"$CLASSPATH\" org.gradle.wrapper.GradleWrapperMain $APP_ARGS"
 
 # by default we should be in the correct project dir, but when run from Finder on Mac, the cwd is wrong
 if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ] ; then

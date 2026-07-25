@@ -18,60 +18,16 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Debug environment
-        run: |
-          {
-            echo "=== Environment ==="
-            echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-            echo "ANDROID_HOME=$ANDROID_HOME"
-            echo "JAVA_HOME=$JAVA_HOME"
-            java -version
-            echo "=== Android SDK ==="
-            ls -la $ANDROID_SDK_ROOT/ 2>&1 || true
-            ls -la $ANDROID_SDK_ROOT/cmdline-tools/ 2>&1 || true
-            which sdkmanager 2>&1 || true
-            echo "=== Files ==="
-            ls -la
-            ls -la gradle/wrapper/ 2>&1 || true
-          } 2>&1 | tee -a full-build.log
-
       - name: Setup Android SDK
         run: |
-          {
-            echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-            echo "local.properties content:"
-            cat local.properties
-            yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
-            echo "Licenses accepted"
-          } 2>&1 | tee -a full-build.log
-
-      - name: Download Gradle Wrapper JAR
-        run: |
-          {
-            mkdir -p gradle/wrapper
-            curl -sS -L -o gradle/wrapper/gradle-wrapper.jar \
-              https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar
-            ls -la gradle/wrapper/gradle-wrapper.jar
-            unzip -p gradle/wrapper/gradle-wrapper.jar META-INF/MANIFEST.MF || true
-          } 2>&1 | tee -a full-build.log
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Make gradlew executable
-        run: |
-          {
-            chmod +x gradlew
-            ls -la gradlew
-          } 2>&1 | tee -a full-build.log
+        run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee -a full-build.log
-
-      - name: Upload full build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: full-build-log
-          path: full-build.log
-          if-no-files-found: ignore
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         if: success()

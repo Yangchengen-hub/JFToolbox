@@ -96,12 +96,13 @@ private data class ContactItem(
 
 private val CONTACTS = listOf(
     ContactItem("酷安", "极风工作室", Icons.Default.Forum,
-        "https://www.coolapk.com/dynasty/22800000"),
-    ContactItem("QQ群", "1083612300", Icons.Default.Forum,
+        "https://www.coolapk.com/u/极风工作室",
+        fallbackUrl = "https://www.coolapk.com"),
+    ContactItem("QQ群", "极风の刷机聊天室", Icons.Default.Forum,
         "mqqopensdkapi://card/show_pslcard?src_type=internal&version=1&uin=1083612300&card_type=group&source=qrcode",
-        fallbackUrl = "https://qm.qq.com/q/1083612300"),
-    ContactItem("Telegram", "纸飞机账号", Icons.Default.Send,
-        "https://t.me/jftoolbox")
+        fallbackUrl = "https://qm.qq.com/cgi-bin/qm/qr?k=1083612300"),
+    ContactItem("GitHub", "Yangchengen-hub", Icons.Default.Code,
+        "https://github.com/Yangchengen-hub")
 )
 
 @Composable

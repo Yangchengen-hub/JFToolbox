@@ -2,86 +2,43 @@
 <!--
   极风工具箱 启动图标前景
   小米风格: 圆形 + 极简 + 现代感
-  元素: 左侧小狐狸头像 + 右侧齿轮图案
-  安全区域: 中心 36x36 (viewport 36~72), 中心点 (54,54)
+  元素: 中心白色圆 + 蓝色闪电(代表工具箱/能量) + 右下角白色齿轮(代表系统/设置)
+  安全区域: 内容限制在中心 72x72 (viewport 18~90), 中心点 (54,54)
+  齿轮半重叠于主圆右下角, 占图标约 25%
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
 
-    <!-- ===== 小狐狸头像 (偏左) ===== -->
-    <!-- 左耳: 尖朝上 -->
-    <path android:fillColor="#FF6B35"
-        android:pathData="M33,48 L36,36 L44,46 Z"/>
-    <!-- 右耳: 尖朝上 -->
-    <path android:fillColor="#FF6B35"
-        android:pathData="M50,46 L58,36 L61,48 Z"/>
-    <!-- 左耳内 -->
-    <path android:fillColor="#E0582A"
-        android:pathData="M36,46 L37,39 L41,45 Z"/>
-    <!-- 右耳内 -->
-    <path android:fillColor="#E0582A"
-        android:pathData="M53,45 L57,39 L58,46 Z"/>
-    <!-- 头部主体 -->
-    <path android:fillColor="#FF6B35"
-        android:pathData="M46,55 m-14,0 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"/>
-    <!-- 头顶高光 -->
-    <path android:fillColor="#FF8E53"
-        android:pathData="M41,48 m-6,0 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"/>
-    <!-- 白色脸颊下巴 -->
+    <!-- ===== 主图标背景: 白色圆形 (小米风格极简纯色, 中心 54,54, 半径 28) ===== -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M34,57 Q46,69 58,57 Q52,63 46,63 Q40,63 34,57 Z"/>
-    <!-- 眼睛 -->
-    <path android:fillColor="#2C2C2C"
-        android:pathData="M40,52 m-2.4,0 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0"/>
-    <path android:fillColor="#2C2C2C"
-        android:pathData="M52,52 m-2.4,0 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0"/>
-    <!-- 眼睛高光 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M40.7,51 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0"/>
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M52.7,51 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0"/>
-    <!-- 鼻子 -->
-    <path android:fillColor="#2C2C2C"
-        android:pathData="M44,58 L48,58 L46,60.5 Z"/>
-    <!-- 微笑 -->
-    <path android:fillColor="#00000000"
-        android:strokeColor="#2C2C2C"
-        android:strokeWidth="1.2"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M42.5,62.5 Q46,65 49.5,62.5"/>
+        android:pathData="M54,54 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0"/>
 
-    <!-- ===== 齿轮图案 (右侧) ===== -->
-    <!-- 齿轮外圈 -->
+    <!-- ===== 闪电 (蓝色 #1976D2, 居中于白色圆内, 经典 Z 字形 lightning bolt) ===== -->
+    <path android:fillColor="#1976D2"
+        android:pathData="M56,32 L40,58 L50,58 L48,78 L68,50 L56,50 Z"/>
+
+    <!-- ===== 齿轮 (右下角, 8 齿, 半重叠于主圆右下角, 中心 74,74) ===== -->
+    <!-- 齿轮主体 (白色圆, r=10) -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M74,54 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0"/>
-    <!-- 齿轮内圈 (空心) -->
-    <path android:fillColor="#FF6B35"
-        android:pathData="M74,54 m-4.5,0 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0"/>
-    <!-- 齿轮齿牙 - 顶部 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M72,42 L76,42 L76,46 L72,46 Z"/>
-    <!-- 齿轮齿牙 - 底部 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M72,62 L76,62 L76,66 L72,66 Z"/>
-    <!-- 齿轮齿牙 - 左侧 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M62,52 L66,52 L66,56 L62,56 Z"/>
-    <!-- 齿轮齿牙 - 右侧 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M82,52 L86,52 L86,56 L82,56 Z"/>
-    <!-- 齿轮齿牙 - 左上 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M65,45 L68,43 L70,46 L67,48 Z"/>
-    <!-- 齿轮齿牙 - 右上 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M80,43 L83,45 L81,48 L78,46 Z"/>
-    <!-- 齿轮齿牙 - 左下 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M65,63 L68,61 L70,64 L67,66 Z"/>
-    <!-- 齿轮齿牙 - 右下 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M80,61 L83,63 L81,66 L78,64 Z"/>
+        android:pathData="M74,74 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0"/>
+
+    <!-- 4 个主方向齿牙 (0°, 90°, 180°, 270°) - 矩形 3x4 -->
+    <path android:fillColor="#FFFFFF" android:pathData="M72.5,60 h3 v4 h-3 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M72.5,84 h3 v4 h-3 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M60,72.5 h4 v3 h-4 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M84,72.5 h4 v3 h-4 z"/>
+
+    <!-- 4 个对角齿牙 (45°, 135°, 225°, 315°) - 整体旋转 45° -->
+    <group android:rotation="45" android:pivotX="74" android:pivotY="74">
+        <path android:fillColor="#FFFFFF" android:pathData="M72.5,60 h3 v4 h-3 z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M72.5,84 h3 v4 h-3 z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M60,72.5 h4 v3 h-4 z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M84,72.5 h4 v3 h-4 z"/>
+    </group>
+
+    <!-- 齿轮中心轴孔 (蓝色 #1976D2, r=4, 形成齿轮中心孔效果) -->
+    <path android:fillColor="#1976D2"
+        android:pathData="M74,74 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
 
 </vector>

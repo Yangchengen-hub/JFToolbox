@@ -56,6 +56,10 @@ class SegmentedDownloader(
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state
 
+    /** 最近解析的 torrent 种子信息 (供 UI 观察)。 */
+    private val _torrentInfo = MutableStateFlow<TorrentParser.TorrentInfo?>(null)
+    val torrentInfo: StateFlow<TorrentParser.TorrentInfo?> = _torrentInfo
+
     private var scope: CoroutineScope? = null
     private val downloadedBytes = AtomicLong(0)
     private var totalBytes: Long = 0
@@ -75,6 +79,27 @@ class SegmentedDownloader(
             }
         }
         return true
+    }
+
+    /**
+     * 尝试用 HTTP 分段下载器处理 torrent 种子。
+     *
+     * 仅当种子为**单文件**且包含 HTTP/HTTPS web seed (BEP 19 url-list) 时,
+     * 复用 [start] 走 Range 多线程下载; 否则返回 false ——
+     * 此时 UI 应提示用户用外部 BT 客户端 (如 LibreTorrent/Flud) 打开磁力链接。
+     *
+     * 本工具**不实现** BT P2P 协议。
+     */
+    fun startTorrent(torrentFile: File, outputDir: String): Boolean {
+        val info = TorrentParser.parse(torrentFile) ?: return false
+        _torrentInfo.value = info
+        // 多文件种子无法用 HTTP web seed 还原目录结构
+        if (info.files.size != 1) return false
+        // 单文件: 必须有 HTTP/HTTPS 直链源
+        val webSeed = info.webSeedUrls.firstOrNull { url ->
+            url.startsWith("http://", true) || url.startsWith("https://", true)
+        } ?: return false
+        return start(webSeed, outputDir, info.name)
     }
 
     /** 取消下载。 */

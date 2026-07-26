@@ -66,6 +66,28 @@ object FirmwareSearcher {
             }
     }
 
+    /**
+     * 酷安 ROM 合集来源 (手工维护)。
+     *
+     * 设计说明:
+     * 酷安没有公开的官方 API, 无法稳定可靠地抓取页面内容,
+     * 因此这里采用「内置手工整理的合集 URL 列表 + 用户跳转浏览器查看」的诚实方案,
+     * 不实际抓取酷安页面 (不稳定且违反 ToS)。
+     *
+     * @param title       合集标题, 如 "酷安 - Pixel ROM 合集"
+     * @param author      作者, 如 "@某只寄托"
+     * @param url         酷安 feed/article URL
+     * @param tags        标签, 如 ["pixel", "rom"]
+     * @param deviceCodes 适配的设备代号, 用于匹配用户输入, 如 ["sargo", "redfin"]
+     */
+    data class CoolapkSource(
+        val title: String,
+        val author: String,
+        val url: String,
+        val tags: List<String>,
+        val deviceCodes: List<String>
+    )
+
     sealed class SearchState {
         object Idle : SearchState()
         data class Searching(val query: String) : SearchState()
@@ -75,6 +97,137 @@ object FirmwareSearcher {
 
     private val _state = MutableStateFlow<SearchState>(SearchState.Idle)
     val state: StateFlow<SearchState> = _state
+
+    /**
+     * 内置酷安 ROM 来源合集 (手工维护)。
+     *
+     * 注意:
+     * - 下面的 URL 使用占位格式 https://www.coolapk.com/feed/<id>,
+     *   实际部署时需要替换为真实可访问的酷安 feed/article URL。
+     * - 酷安无公开 API, 这里仅作为索引跳转, 不抓取页面内容。
+     * - 每条目标注适配的设备代号, 方便按用户输入匹配。
+     */
+    val COOLAPK_SOURCES: List<CoolapkSource> = listOf(
+        CoolapkSource(
+            title = "酷安 - Pixel ROM 合集",
+            author = "@某只寄托",
+            url = "https://www.coolapk.com/feed/10000001", // 实际部署时替换为真实URL
+            tags = listOf("pixel", "rom", "google"),
+            deviceCodes = listOf("sargo", "redfin", "bramble", "barbet", "raven", "oriole")
+        ),
+        CoolapkSource(
+            title = "酷安 - 小米刷机包合集",
+            author = "@小米ROM搬运工",
+            url = "https://www.coolapk.com/feed/10000002", // 实际部署时替换为真实URL
+            tags = listOf("xiaomi", "miui", "hyperos"),
+            deviceCodes = listOf("alioth", "raphael", "umi", "cetus", "vermeer", "aurora")
+        ),
+        CoolapkSource(
+            title = "酷安 - Redmi 红米ROM合集",
+            author = "@红米玩家",
+            url = "https://www.coolapk.com/feed/10000003", // 实际部署时替换为真实URL
+            tags = listOf("redmi", "miui", "hyperos"),
+            deviceCodes = listOf("alioth", "sweet", "rose", "lisa", "evergo", "fire")
+        ),
+        CoolapkSource(
+            title = "酷安 - 一加 OxygenOS 合集",
+            author = "@一加工具箱",
+            url = "https://www.coolapk.com/feed/10000004", // 实际部署时替换为真实URL
+            tags = listOf("oneplus", "oxygenos", "rom"),
+            deviceCodes = listOf("lemonade", "lemonadep", "oneplus9", "nord2", "kebab", "instantnoodle")
+        ),
+        CoolapkSource(
+            title = "酷安 - OPPO ColorOS 合集",
+            author = "@OPPO固件库",
+            url = "https://www.coolapk.com/feed/10000005", // 实际部署时替换为真实URL
+            tags = listOf("oppo", "coloros"),
+            deviceCodes = listOf("ossi", "taro", "mt6989", "aston", "davinci", "PD2")
+        ),
+        CoolapkSource(
+            title = "酷安 - vivo OriginOS 合集",
+            author = "@vivo固件搬运",
+            url = "https://www.coolapk.com/feed/10000006", // 实际部署时替换为真实URL
+            tags = listOf("vivo", "originos", "funtouch"),
+            deviceCodes = listOf("PD2", "PD3", "V22", "V21", "S15", "X90")
+        ),
+        CoolapkSource(
+            title = "酷安 - 三星 OneUI 固件合集",
+            author = "@三星ROM分享",
+            url = "https://www.coolapk.com/feed/10000007", // 实际部署时替换为真实URL
+            tags = listOf("samsung", "oneui", "firmware"),
+            deviceCodes = listOf("SM-S9210", "SM-S926", "SM-S928", "kona", "sargo", "d1q")
+        ),
+        CoolapkSource(
+            title = "酷安 - 联发科平台 ROM 合集",
+            author = "@MTK固件研究",
+            url = "https://www.coolapk.com/feed/10000008", // 实际部署时替换为真实URL
+            tags = listOf("mediatek", "mtk", "rom"),
+            deviceCodes = listOf("MT6989", "MT6985", "MT6878", "evergo", "fire", "lisa")
+        ),
+        CoolapkSource(
+            title = "酷安 - LineageOS 中文社区合集",
+            author = "@LineageOS中文组",
+            url = "https://www.coolapk.com/feed/10000009", // 实际部署时替换为真实URL
+            tags = listOf("lineageos", "rom", "aosp"),
+            deviceCodes = listOf("sargo", "bonito", "crosshatch", "blueline", "flame", "coral")
+        ),
+        CoolapkSource(
+            title = "酷安 - Pixel Experience 合集",
+            author = "@PE搬运组",
+            url = "https://www.coolapk.com/feed/10000010", // 实际部署时替换为真实URL
+            tags = listOf("pixelexperience", "pixel", "rom"),
+            deviceCodes = listOf("sargo", "bonito", "redfin", "barbet", "raven", "oriole")
+        ),
+        CoolapkSource(
+            title = "酷安 - crDroid 中文合集",
+            author = "@crDroid中文站",
+            url = "https://www.coolapk.com/feed/10000011", // 实际部署时替换为真实URL
+            tags = listOf("crdroid", "rom", "aosp"),
+            deviceCodes = listOf("alioth", "apollo", "lemonade", "kebab", "instantnoodle")
+        ),
+        CoolapkSource(
+            title = "酷安 - Recovery (TWRP/OrangeFox) 合集",
+            author = "@Recovery搬运",
+            url = "https://www.coolapk.com/feed/10000012", // 实际部署时替换为真实URL
+            tags = listOf("recovery", "twrp", "orangefox"),
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "bonito", "crosshatch")
+        )
+    )
+
+    /**
+     * 按设备代号匹配酷安源。
+     *
+     * 匹配规则:
+     * - 用户输入的 query 与 deviceCodes 列表进行大小写不敏感的精确/包含匹配;
+     * - query 与 tags 中的标签匹配也算命中;
+     * - 空查询返回全部酷安源 (便于浏览)。
+     *
+     * @param query 设备型号/代号 (如 "sargo")
+     * @return 命中的酷安源列表
+     */
+    fun searchCoolapk(query: String): List<CoolapkSource> {
+        if (query.isBlank()) return COOLAPK_SOURCES
+        val q = query.trim().lowercase()
+        return COOLAPK_SOURCES.filter { src ->
+            src.deviceCodes.any { it.lowercase() == q || it.lowercase().contains(q) } ||
+            src.tags.any { it.lowercase() == q || it.lowercase().contains(q) } ||
+            src.title.lowercase().contains(q)
+        }
+    }
+
+    /**
+     * 构造酷安搜索 URL (供用户跳转浏览器查看)。
+     *
+     * 酷安站内搜索的 URL 形如:
+     *   https://www.coolapk.com/search?key=<keyword>
+     *
+     * @param query 搜索关键词
+     * @return 已编码的酷安搜索 URL
+     */
+    fun buildCoolapkSearchUrl(query: String): String {
+        val encoded = java.net.URLEncoder.encode(query.trim(), "UTF-8")
+        return "https://www.coolapk.com/search?key=$encoded"
+    }
 
     /**
      * 搜索固件。

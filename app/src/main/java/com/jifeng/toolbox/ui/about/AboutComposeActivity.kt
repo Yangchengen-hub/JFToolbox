@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,10 +21,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.Icon
@@ -149,12 +152,11 @@ private fun AboutScreen() {
 
             // 联系方式
             LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("联系方式", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(4.dp))
                     CONTACTS.forEach { item ->
-                        ContactRow(item) {
+                        ContactCapsule(item) {
                             if (item.fallbackUrl != null) {
                                 openUrlWithFallback(ctx, item.primaryUrl, item.fallbackUrl)
                             } else {
@@ -162,6 +164,7 @@ private fun AboutScreen() {
                             }
                         }
                     }
+                    Spacer(Modifier.height(8.dp))  // 卡片底部留 8dp 空间
                 }
             }
 
@@ -210,23 +213,35 @@ private fun CreditRow(item: CreditItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ContactRow(item: ContactItem, onClick: () -> Unit) {
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .clickable(onClick = onClick)
-        .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically) {
-        Icon(item.icon, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(item.label, style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
-            Text(item.detail, style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun ContactCapsule(item: ContactItem, onClick: () -> Unit) {
+    // 胶囊按钮: 完全圆角的 Surface + Primary 色淡背景与边框
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),  // 高度 56 的一半 = 完全圆角胶囊
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+    ) {
+        Row(modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Icon(item.icon, contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(item.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold)
+                Text(item.detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = "打开",
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                modifier = Modifier.size(20.dp))
         }
-        Icon(Icons.Default.Web, contentDescription = "打开",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
     }
 }
 

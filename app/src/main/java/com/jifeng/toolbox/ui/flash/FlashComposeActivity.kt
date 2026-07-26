@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
@@ -271,6 +272,16 @@ private fun EdlTab() {
                     }
                 }) { Text("检测黑砖") }
             }
+            // 芯片引导 (firehose loader) 选择: 跳转独立 Activity, 自动探测 / 下载 / 选用
+            Button(onClick = {
+                ctx.startActivity(Intent(ctx, LoaderPickerComposeActivity::class.java))
+            }, modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.material3.Icon(
+                    Icons.Default.Memory,
+                    contentDescription = null, modifier = Modifier.height(18.dp)
+                )
+                Text(" 芯片引导选择 (firehose loader)")
+            }
             pickedPath?.let {
                 Text("救砖包: ${File(it).name}", style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
@@ -302,6 +313,7 @@ private fun EdlTab() {
 
 @Composable
 private fun PartitionEditorTab() {
+    val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val parts = remember { mutableStateListOf<com.jifeng.toolbox.core.Partition>() }
     var loading by remember { mutableStateOf(false) }
@@ -328,6 +340,15 @@ private fun PartitionEditorTab() {
                         modifier = Modifier.height(18.dp))
                     Text(" 读取分区表")
                 }
+            }
+            Spacer(Modifier.height(8.dp))
+            // 跳转到独立的 rawprogram.xml 分区表编辑器
+            Button(onClick = {
+                ctx.startActivity(Intent(ctx, PartitionEditorComposeActivity::class.java))
+            }, modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.material3.Icon(Icons.Default.Storage, contentDescription = null,
+                    modifier = Modifier.height(18.dp))
+                Text(" 打开分区表编辑器 (rawprogram.xml)")
             }
             Spacer(Modifier.height(12.dp))
             if (loading) Text("读取中...", style = MaterialTheme.typography.bodyMedium,

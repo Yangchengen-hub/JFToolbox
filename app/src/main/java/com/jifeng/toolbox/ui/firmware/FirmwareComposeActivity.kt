@@ -1,5 +1,7 @@
 package com.jifeng.toolbox.ui.firmware
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,12 +18,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,10 +65,13 @@ private fun FirmwareScreen() {
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
     val results = remember { mutableStateListOf<FirmwareSearcher.FirmwareEntry>() }
+    val coolapkResults = remember { mutableStateListOf<FirmwareSearcher.CoolapkSource>() }
     val logs = remember { mutableStateListOf<String>() }
     var progress by remember { mutableStateOf<Float?>(null) }
     var progressLabel by remember { mutableStateOf<String?>(null) }
     var isSearching by remember { mutableStateOf(false) }
+    // 0 = GitHub 源, 1 = 酷安源
+    var selectedTab by remember { mutableStateOf(0) }
 
     val downloader = remember { SegmentedDownloader(segmentCount = 4) }
 
@@ -133,6 +144,9 @@ private fun FirmwareScreen() {
                             if (query.isBlank()) return@Button
                             logs.clear()
                             logs.add("搜索: $query")
+                            // 同步刷新酷安源匹配结果
+                            coolapkResults.clear()
+                            coolapkResults.addAll(FirmwareSearcher.searchCoolapk(query))
                             scope.launch { FirmwareSearcher.search(query) }
                         },
                         enabled = !isSearching && query.isNotBlank(),
@@ -146,48 +160,133 @@ private fun FirmwareScreen() {
                         }
                         Text(" 检索固件")
                     }
+                    // 顶部「去酷安搜索」按钮, 跳转浏览器查看酷安站内搜索结果
+                    OutlinedButton(
+                        onClick = {
+                            if (query.isBlank()) return@OutlinedButton
+                            val url = FirmwareSearcher.buildCoolapkSearchUrl(query)
+                            logs.add("跳转酷安搜索: $url")
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            ctx.startActivity(intent)
+                        },
+                        enabled = query.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                    ) {
+                        Icon(Icons.Default.OpenInNew, contentDescription = null,
+                            modifier = Modifier.height(18.dp),
+                            tint = MaterialTheme.colorScheme.primary)
+                        Text(" 去酷安搜索 (浏览器打开)")
+                    }
                 }
             }
             Spacer(Modifier.height(12.dp))
 
+            // 源切换 Tab: GitHub 源 / 酷安源
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
+                    text = { Text("GitHub 源 (${results.size})") })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
+                    text = { Text("酷安源 (${coolapkResults.size})") })
+            }
+            Spacer(Modifier.height(8.dp))
+
             LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 12.dp) {
-                if (results.isEmpty() && !isSearching) {
-                    Text("输入设备代号后点击「检索固件」搜索 GitHub 上的 ROM 和 Recovery",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 12.dp))
-                }
-                LazyColumn(modifier = Modifier.height(240.dp)) {
-                    items(results) { entry ->
-                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                            Text(entry.displayTitle, style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                            Text("${entry.releaseName} · ${entry.displayDate}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            entry.assets.forEach { asset ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            logs.clear()
-                                            logs.add("下载: ${asset.name} (${asset.sizeFormatted})")
-                                            val dir = File(ctx.getExternalFilesDir(null), "firmware").absolutePath
-                                            downloader.start(asset.downloadUrl, dir, asset.name)
+                when (selectedTab) {
+                    0 -> {
+                        // GitHub 源结果 (保持原有展示逻辑)
+                        if (results.isEmpty() && !isSearching) {
+                            Text("输入设备代号后点击「检索固件」搜索 GitHub 上的 ROM 和 Recovery",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 12.dp))
+                        }
+                        LazyColumn(modifier = Modifier.height(240.dp)) {
+                            items(results) { entry ->
+                                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                    Text(entry.displayTitle, style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                    Text("${entry.releaseName} · ${entry.displayDate}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    entry.assets.forEach { asset ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    logs.clear()
+                                                    logs.add("下载: ${asset.name} (${asset.sizeFormatted})")
+                                                    val dir = File(ctx.getExternalFilesDir(null), "firmware").absolutePath
+                                                    downloader.start(asset.downloadUrl, dir, asset.name)
+                                                }
+                                                .padding(vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Download, contentDescription = null,
+                                                modifier = Modifier.height(16.dp),
+                                                tint = MaterialTheme.colorScheme.primary)
+                                            Spacer(Modifier.height(0.dp))
+                                            Text("  ${asset.name} (${asset.sizeFormatted})",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface)
                                         }
-                                        .padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Download, contentDescription = null,
-                                        modifier = Modifier.height(16.dp),
-                                        tint = MaterialTheme.colorScheme.primary)
-                                    Spacer(Modifier.height(0.dp))
-                                    Text("  ${asset.name} (${asset.sizeFormatted})",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
                                 }
                             }
-                            Spacer(Modifier.height(4.dp))
+                        }
+                    }
+                    1 -> {
+                        // 酷安源结果: 手工整理的 ROM 合集, 点击跳转浏览器查看
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                "酷安无公开 API, 以下为手工整理的 ROM 合集, 点击跳转浏览器查看",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                            LazyColumn(modifier = Modifier.height(240.dp)) {
+                                items(coolapkResults) { src ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                logs.add("打开酷安合集: ${src.title}")
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(src.url))
+                                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                ctx.startActivity(intent)
+                                            }
+                                            .padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.OpenInNew, contentDescription = null,
+                                            modifier = Modifier.height(18.dp),
+                                            tint = MaterialTheme.colorScheme.primary)
+                                        Column(modifier = Modifier
+                                            .weight(1f)
+                                            .padding(start = 8.dp)) {
+                                            Text(src.title, style = MaterialTheme.typography.titleSmall,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontWeight = FontWeight.Bold)
+                                            Text(src.author, style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            // 展示 tags
+                                            Row(
+                                                modifier = Modifier.padding(top = 4.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                src.tags.take(3).forEach { tag ->
+                                                    SuggestionChip(
+                                                        onClick = {},
+                                                        label = { Text(tag, style = MaterialTheme.typography.labelSmall) },
+                                                        colors = SuggestionChipDefaults.suggestionChipColors()
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

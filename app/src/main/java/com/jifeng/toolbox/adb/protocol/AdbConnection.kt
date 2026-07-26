@@ -130,6 +130,14 @@ class AdbConnection(
         return String(out).trim()
     }
 
+    /** 执行 shell 命令, 返回原始字节 (二进制安全, 用 exec-out: 避免 pty 的 \n→\r\n 翻译)。 */
+    fun shellBytes(cmd: String, timeoutMs: Long = 15_000): ByteArray {
+        val s = openStream("exec-out:$cmd")
+        val out = s.readAll(timeoutMs)
+        closeStream(s)
+        return out
+    }
+
     fun close() {
         connected = false
         streams.values.forEach { it.markClosed() }

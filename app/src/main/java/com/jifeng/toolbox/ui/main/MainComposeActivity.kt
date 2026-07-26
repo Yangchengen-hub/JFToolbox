@@ -80,6 +80,7 @@ import com.jifeng.toolbox.ui.components.JFScaffold
 import com.jifeng.toolbox.ui.crypto.CryptoComposeActivity
 import com.jifeng.toolbox.ui.downloader.DownloaderComposeActivity
 import com.jifeng.toolbox.ui.flash.FlashComposeActivity
+import com.jifeng.toolbox.ui.flash.PartitionEditorComposeActivity
 import com.jifeng.toolbox.ui.freeze.FreezeComposeActivity
 import com.jifeng.toolbox.ui.kernel.KernelComposeActivity
 import com.jifeng.toolbox.ui.backup.BackupComposeActivity
@@ -308,7 +309,7 @@ class MainComposeActivity : ComponentActivity() {
     private val FEATURE_TILES = listOf(
         Tile("Fastboot 刷机", Icons.Default.Bolt, FlashComposeActivity::class.java),
         Tile("9008 救砖", Icons.Default.Build, FlashComposeActivity::class.java),
-        Tile("分区表编辑", Icons.Default.Storage, FlashComposeActivity::class.java),
+        Tile("分区表编辑", Icons.Default.Storage, PartitionEditorComposeActivity::class.java),
         Tile("超级终端", Icons.Default.Terminal, TerminalComposeActivity::class.java),
         Tile("无线调试", Icons.Default.Wifi, WirelessDebugComposeActivity::class.java),
         Tile("屏幕远程", Icons.Default.ScreenShare, ScreenMirrorComposeActivity::class.java),

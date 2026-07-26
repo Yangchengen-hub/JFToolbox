@@ -127,6 +127,17 @@ object AppFreezer {
     }
 
     /**
+     * 按 RogueApp 列表批量冻结 —— 智能冻结检索专用便捷方法。
+     * @return (成功数, 失败数)
+     */
+    suspend fun batchFreezeRogue(serial: String, rogues: List<RogueAppRegistry.RogueApp>): Pair<Int, Int> =
+        withContext(Dispatchers.IO) {
+            val packages = rogues.map { it.packageName }
+            Logger.i(TAG, "批量冻结 ${packages.size} 个流氓软件")
+            batchFreeze(serial, packages)
+        }
+
+    /**
      * 用户级卸载 (保留 APK, 仅移除当前用户)。
      */
     suspend fun uninstallUser(serial: String, packageName: String): Boolean = withContext(Dispatchers.IO) {

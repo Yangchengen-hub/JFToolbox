@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -51,19 +52,45 @@ import kotlinx.coroutines.launch
 class TerminalComposeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { TerminalScreen() }
+        // 读取联动 extras: auto_command 自动填入并执行, auto_lang 指定运行环境 (默认 shell)
+        val autoCommand = intent?.getStringExtra("auto_command")
+        val autoLang = intent?.getStringExtra("auto_lang") ?: "shell"
+        setContent { TerminalScreen(autoCommand = autoCommand, autoLang = autoLang) }
     }
 }
 
 @Composable
-private fun TerminalScreen() {
+private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shell") {
     val scope = rememberCoroutineScope()
     val logs = remember { mutableStateListOf<String>() }
-    var input by remember { mutableStateOf("") }
+    var input by remember { mutableStateOf(autoCommand ?: "") }
     var langExpanded by remember { mutableStateOf(false) }
-    var lang by remember { mutableStateOf("shell") }
+    var lang by remember { mutableStateOf(autoLang) }
     var showSshConfig by remember { mutableStateOf(false) }
     var isRunning by remember { mutableStateOf(false) }
+
+    // 执行单条命令的统一入口 (供手动按钮与 auto_command 复用)
+    val runCommand: (String) -> Unit = { cmd ->
+        if (cmd.isNotBlank() && !isRunning) {
+            logs.add("\$ [$lang] $cmd")
+            isRunning = true
+            scope.launch {
+                val result = TerminalEngine.execute(lang, cmd)
+                logs.add(result.output)
+                if (result.durationMs > 0) {
+                    logs.add("(${result.durationMs}ms)")
+                }
+                isRunning = false
+            }
+        }
+    }
+
+    // auto_command 联动: 进入后自动填入并执行一次 (输入框保留命令以便复看/重跑)
+    LaunchedEffect(autoCommand) {
+        if (!autoCommand.isNullOrBlank()) {
+            runCommand(autoCommand)
+        }
+    }
 
     // SSH 配置
     var sshHost by remember { mutableStateOf("") }
@@ -148,16 +175,7 @@ private fun TerminalScreen() {
                     onClick = {
                         if (input.isNotBlank() && !isRunning) {
                             val cmd = input; input = ""
-                            logs.add("\$ [$lang] $cmd")
-                            isRunning = true
-                            scope.launch {
-                                val result = TerminalEngine.execute(lang, cmd)
-                                logs.add(result.output)
-                                if (result.durationMs > 0) {
-                                    logs.add("(${result.durationMs}ms)")
-                                }
-                                isRunning = false
-                            }
+                            runCommand(cmd)
                         }
                     },
                     enabled = !isRunning && input.isNotBlank()

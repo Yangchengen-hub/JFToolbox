@@ -6,6 +6,7 @@ import com.jifeng.toolbox.adb.protocol.AdbConnection
 import com.jifeng.toolbox.adb.protocol.AdbKeyManager
 import com.jifeng.toolbox.adb.protocol.AdbSync
 import com.jifeng.toolbox.adb.protocol.AdbTransport
+import com.jifeng.toolbox.adb.protocol.TcpAdbTransport
 import com.jifeng.toolbox.core.Logger
 
 /**
@@ -54,6 +55,35 @@ object AdbManager {
         currentSerial = null
     }
 
+    /**
+     * 通过 TCP (无线 ADB) 连接被控端。不需 USB 权限请求。
+     * 适用: 被控端已 `adb tcpip 5555` 或已激活无线调试的 active 端口。
+     *
+     * 流程: disconnect → TcpAdbTransport.open → AdbConnection.connect (CNXN/AUTH) → 读 serial。
+     */
+    fun connectTcp(host: String, port: Int = 5555): Boolean {
+        disconnect()
+        val transport = TcpAdbTransport(host, port)
+        try {
+            transport.open()
+        } catch (e: Exception) {
+            Logger.e(TAG, "TCP 打开失败: ${e.message}")
+            transport.release()
+            return false
+        }
+        val adb = AdbConnection(transport, keys)
+        if (!adb.connect()) {
+            Logger.e(TAG, "ADB 握手失败: $host:$port")
+            transport.release()
+            return false
+        }
+        connection = adb
+        sync = AdbSync(adb)
+        currentSerial = readSerial()
+        Logger.i(TAG, "已连接(无线) $host:$port serial=$currentSerial")
+        return true
+    }
+
     private fun readSerial(): String? =
         connection?.shell("getprop ro.serialno", 3_000)?.takeIf { it.isNotBlank() }
 
@@ -62,6 +92,12 @@ object AdbManager {
     fun shell(serial: String, cmd: String): String? {
         val c = connection ?: return null
         return try { c.shell(cmd) } catch (e: Exception) { Logger.w(TAG, "shell 失败: ${e.message}"); null }
+    }
+
+    /** shell 命令的原始字节版本 (用于 screencap -p 等二进制输出)。 */
+    fun shellBytes(serial: String, cmd: String): ByteArray? {
+        val c = connection ?: return null
+        return try { c.shellBytes(cmd) } catch (e: Exception) { Logger.w(TAG, "shellBytes 失败: ${e.message}"); null }
     }
 
     fun push(serial: String, local: String, remote: String): Boolean =

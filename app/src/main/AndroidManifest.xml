@@ -70,6 +70,12 @@
                 android:resource="@xml/usb_device_filter" />
         </activity>
         <activity android:name=".ui.flash.FlashComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.flash.PartitionEditorComposeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.flash.LoaderPickerComposeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.terminal.TerminalComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.wireless.WirelessDebugComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.screenmirror.ScreenMirrorComposeActivity" android:theme="@style/Theme.JFToolbox" />

@@ -13,7 +13,10 @@ import java.io.File
  *   - rawprogram0.xml (主分区表)
  *   - 至少一个 .img/.bin 分区镜像
  *
- * 芯片引导匹配: 文件名含 sm8650/sm8550/mt6989 等关键词, 与 getprop 读到的 ro.board.platform 比对。
+ * 芯片引导匹配:
+ *   - 文件名含 sm8650/sm8550/mt6989 等关键词, 与 getprop 读到的 ro.board.platform 比对
+ *   - 包内缺 programmer 时, 调 [FirehoseLoaderRegistry.match] 在内置注册表中查找,
+ *     [autoMatchProgrammer] 进一步在本地缓存中定位 .elf 文件 (上层负责调 download 拉取)
  */
 class EdlRescuer(private val firehose: FirehoseProtocol, private val parser: RawprogramParser) {
 
@@ -58,7 +61,56 @@ class EdlRescuer(private val firehose: FirehoseProtocol, private val parser: Raw
         val chipset = inferChipset(programmer ?: "")
         val pack = RescuePack(f, programmer, rawprograms, images, chipset)
         Logger.i("EdlRescuer", "包校验: valid=${pack.isValid} programmer=$programmer rawprograms=${rawprograms.size} images=${images.size} chipset=$chipset")
+        // 包内缺 programmer 时, 尝试从注册表匹配 chipset, 让上层决定是否下载补全
+        if (programmer == null) {
+            val matched = FirehoseLoaderRegistry.match(chipset)
+            if (matched != null) {
+                Logger.i("EdlRescuer", "缺 programmer, 注册表命中: ${matched.filename} (chipset=${matched.chipset}, vendor=${matched.vendor}) → 上层可调 autoMatchProgrammer / download 补全")
+            } else {
+                Logger.w("EdlRescuer", "缺 programmer, 且注册表未命中 chipset=$chipset → 需手动提供 firehose loader")
+            }
+        }
         return pack
+    }
+
+    /**
+     * 救砖包缺 programmer 时尝试自动匹配本地缓存的 firehose loader。
+     *
+     * 匹配顺序:
+     *   1. 包内已含 programmer (RescuePack.programmer 非空) → 直接返回解压目录下的 File
+     *   2. 调 [FirehoseLoaderRegistry.match] 按 chipset 匹配注册表条目
+     *   3. 在 [cacheDir] 中查找匹配条目的 filename (大小写不敏感)
+     *
+     * 本方法不触发网络下载, 仅查本地缓存; 上层需自行调
+     * [FirehoseLoaderRegistry.download] 拉取后再调用本方法。
+     *
+     * @param pack     已校验的救砖包
+     * @param cacheDir 本地 firehose loader 缓存目录
+     * @return 命中的 .elf 文件, 未找到返回 null
+     */
+    fun autoMatchProgrammer(pack: RescuePack, cacheDir: File): File? {
+        // 1. 包内已有 programmer
+        val extractDir = File(pack.file.parentFile, pack.file.nameWithoutExtension + "_edl")
+        pack.programmer?.let { name ->
+            val f = File(extractDir, name)
+            if (f.exists() && f.length() > 0) return f
+        }
+        // 2. 注册表匹配 chipset
+        val entry = FirehoseLoaderRegistry.match(pack.chipset) ?: run {
+            Logger.w("EdlRescuer", "autoMatchProgrammer: chipset=${pack.chipset} 注册表未命中")
+            return null
+        }
+        // 3. 本地缓存查找 (大小写不敏感, 兼容 .elf / .mbn)
+        val local = File(cacheDir, entry.filename)
+        if (local.exists() && local.length() > 0) {
+            Logger.i("EdlRescuer", "autoMatchProgrammer 命中本地缓存: ${local.absolutePath}")
+            return local
+        }
+        cacheDir.listFiles()?.firstOrNull {
+            it.isFile && it.name.equals(entry.filename, ignoreCase = true)
+        }?.let { return it }
+        Logger.i("EdlRescuer", "autoMatchProgrammer: 注册表命中 ${entry.filename}, 但本地缓存未找到 (cacheDir=${cacheDir.absolutePath})")
+        return null
     }
 
     /** 黑砖检测: 通过 getStorageInfo 查分区数。 */

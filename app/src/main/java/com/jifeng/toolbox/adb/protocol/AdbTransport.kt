@@ -18,22 +18,22 @@ import java.io.IOException
  *
  * Fastboot 协议复用本类结构, 仅 protocol 字段不同 (0x03), 见 FastbootClient。
  */
-class AdbTransport(
-    private val connection: UsbDeviceConnection,
-    private val iface: UsbInterface,
-    private val epIn: UsbEndpoint,
-    private val epOut: UsbEndpoint
+open class AdbTransport(
+    private val connection: UsbDeviceConnection? = null,
+    private val iface: UsbInterface? = null,
+    private val epIn: UsbEndpoint? = null,
+    private val epOut: UsbEndpoint? = null
 ) {
     private val inBuf = ByteArrayOutputStream()
     private val inRaw = ByteArray(MAX_RAW)
 
-    fun send(msg: AdbMessage) {
+    open fun send(msg: AdbMessage) {
         val payload = msg.encode()
         var off = 0
-        val chunk = epOut.maxPacketSize.coerceAtLeast(512)
+        val chunk = epOut!!.maxPacketSize.coerceAtLeast(512)
         while (off < payload.size) {
             val len = minOf(payload.size - off, chunk)
-            val n = connection.bulkTransfer(epOut, payload, off, len, TIMEOUT_MS)
+            val n = connection!!.bulkTransfer(epOut!!, payload, off, len, TIMEOUT_MS)
             if (n < 0) throw IOException("USB bulk OUT 失败 (offset=$off)")
             off += n
             if (n == 0) break
@@ -41,7 +41,7 @@ class AdbTransport(
     }
 
     /** 阻塞读取一个完整 ADB 报文 (头 + 载荷)。 */
-    fun receive(): AdbMessage {
+    open fun receive(): AdbMessage {
         val header = readExact(24)
         val h = AdbMessage.Header.decode(header)
         val data = if (h.dataLength > 0) readExact(h.dataLength) else ByteArray(0)
@@ -67,13 +67,13 @@ class AdbTransport(
     }
 
     private fun fillBuffer() {
-        val n = connection.bulkTransfer(epIn, inRaw, inRaw.size, TIMEOUT_MS)
+        val n = connection!!.bulkTransfer(epIn!!, inRaw, inRaw.size, TIMEOUT_MS)
         if (n > 0) inBuf.write(inRaw, 0, n)
     }
 
-    fun release() {
-        try { connection.releaseInterface(iface) } catch (_: Exception) {}
-        try { connection.close() } catch (_: Exception) {}
+    open fun release() {
+        try { connection?.releaseInterface(iface!!) } catch (_: Exception) {}
+        try { connection?.close() } catch (_: Exception) {}
     }
 
     companion object {

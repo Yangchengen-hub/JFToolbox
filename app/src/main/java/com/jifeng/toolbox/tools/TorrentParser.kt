@@ -177,7 +177,17 @@ object TorrentParser {
             is BValue.BDict -> {
                 out.write('d'.code)
                 // BT 规范要求 key 按 raw bytes 字典序排列
-                value.value.toSortedMap(compareBy { it.toByteArray(Charsets.UTF_8) }).forEach { (k, v) ->
+                value.value.toSortedMap { a, b ->
+                    val ba = a.toByteArray(Charsets.UTF_8)
+                    val bb = b.toByteArray(Charsets.UTF_8)
+                    var i = 0
+                    while (i < ba.size && i < bb.size) {
+                        val cmp = (ba[i].toInt() and 0xFF) - (bb[i].toInt() and 0xFF)
+                        if (cmp != 0) return@toSortedMap cmp
+                        i++
+                    }
+                    ba.size - bb.size
+                }.forEach { (k, v) ->
                     val kb = k.toByteArray(Charsets.UTF_8)
                     out.write(kb.size.toString().toByteArray(Charsets.US_ASCII))
                     out.write(':'.code)

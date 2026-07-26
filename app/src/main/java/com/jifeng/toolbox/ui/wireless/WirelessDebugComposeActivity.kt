@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Pair
 import androidx.compose.material.icons.filled.Phonelink
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -154,7 +153,7 @@ private fun WirelessDebugScreen() {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.Pair, contentDescription = null,
+                        Icon(Icons.Default.Link, contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary)
                         Text("配对 (Android 11+ 配对码)", style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
@@ -199,7 +198,7 @@ private fun WirelessDebugScreen() {
                             CircularProgressIndicator(modifier = Modifier.height(18.dp),
                                 strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         } else {
-                            Icon(Icons.Default.Pair, contentDescription = null, modifier = Modifier.height(18.dp))
+                            Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.height(18.dp))
                         }
                         Text(" 配对")
                     }

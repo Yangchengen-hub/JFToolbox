@@ -24,9 +24,14 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -49,6 +54,7 @@ import com.jifeng.toolbox.edl.EdlRescuer
 import com.jifeng.toolbox.edl.EdlTransport
 import com.jifeng.toolbox.edl.FirehoseProtocol
 import com.jifeng.toolbox.edl.RawprogramParser
+import com.jifeng.toolbox.fastboot.FastbootClient
 import com.jifeng.toolbox.fastboot.FastbootFlasher
 import com.jifeng.toolbox.notify.FlashNotificationManager
 import com.jifeng.toolbox.ui.components.JFScaffold
@@ -70,7 +76,7 @@ class FlashComposeActivity : ComponentActivity() {
 @Composable
 private fun FlashScreen() {
     var tab by remember { mutableStateOf(0) }
-    val tabs = listOf("Fastboot", "9008 救砖", "分区表编辑")
+    val tabs = listOf("Fastboot", "单镜像刷入", "9008 救砖", "分区表编辑")
     JFScaffold { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
             Text("刷机中心", style = MaterialTheme.typography.headlineMedium,
@@ -85,8 +91,9 @@ private fun FlashScreen() {
             Spacer(Modifier.height(16.dp))
             when (tab) {
                 0 -> FastbootTab()
-                1 -> EdlTab()
-                2 -> PartitionEditorTab()
+                1 -> SingleImageTab()
+                2 -> EdlTab()
+                3 -> PartitionEditorTab()
             }
         }
     }
@@ -233,6 +240,184 @@ private fun FastbootTab() {
 }
 
 @Composable
+private fun SingleImageTab() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var pickedPath by remember { mutableStateOf<String?>(null) }
+    var partition by remember { mutableStateOf("boot") }
+    val logs = remember { mutableStateListOf<String>() }
+    var progress by remember { mutableStateOf<Float?>(null) }
+    var progressLabel by remember { mutableStateOf<String?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            val tmp = File(ctx.cacheDir, "jf_img_${System.currentTimeMillis()}.img")
+            ctx.contentResolver.openInputStream(it)?.use { input ->
+                tmp.outputStream().use { input.copyTo(it) }
+            }
+            pickedPath = tmp.absolutePath
+            logs.add("已选择镜像: ${tmp.name} (${tmp.length() / 1024} KB)")
+            // 自动从文件名推断分区名
+            val infer = tmp.nameWithoutExtension.lowercase()
+            if (infer in FastbootFlasher.PROTECTED + setOf(
+                    "boot", "recovery", "system", "vendor", "product",
+                    "vbmeta", "dtbo", "super", "userdata", "cache"
+                )) {
+                partition = infer
+                logs.add("已自动识别分区: $partition")
+            }
+        }
+    }
+
+    LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("单镜像刷入 (fastboot flash)", style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+            Text("前置: 设备须进 bootloader (fastboot mode)。\n选 .img → 选分区 → 刷入。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("当前 ADB 连接: ${if (AdbManager.isConnected) "已连接" else "未连接"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { launcher.launch(arrayOf("*/*")) }) {
+                    Icon(Icons.Default.FolderOpen, contentDescription = null,
+                        modifier = Modifier.height(18.dp))
+                    Spacer(Modifier.height(0.dp)); Text(" 选择 .img")
+                }
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            AdbManager.listDevices().firstOrNull()?.let { dev ->
+                                DeviceDetector.reboot(dev, "bootloader")
+                            }
+                        }
+                        logs.add("指令已发送: 重启到 bootloader")
+                    }
+                }) { Text("重启到 fastboot") }
+            }
+
+            pickedPath?.let { path ->
+                val f = File(path)
+                Text("文件: ${f.name} (${f.length() / 1024} KB)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface)
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text("分区:", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    OutlinedTextField(value = partition, onValueChange = { partition = it.trim().lowercase() },
+                        singleLine = true, modifier = Modifier.fillMaxWidth(0.6f),
+                        label = { Text("分区名") })
+                }
+
+                // 常用分区快捷按钮
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("boot", "recovery", "vbmeta", "dtbo", "system").forEach { p ->
+                        FilterChip(
+                            selected = partition == p,
+                            onClick = { partition = p },
+                            label = { Text(p, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+
+                if (partition in FastbootFlasher.PROTECTED) {
+                    Row(verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Default.Warning,
+                            contentDescription = null, tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.height(16.dp))
+                        Spacer(Modifier.height(0.dp))
+                        Text(" ⚠ 受保护分区, 误刷可能变砖, 请确认来源!",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        scope.launch {
+                            logs.clear(); progress = 0f; progressLabel = "查找 fastboot 设备..."
+                            val usbMgr = UsbDeviceManager.get(ctx)
+                            val device = withContext(Dispatchers.IO) { usbMgr.findFastbootDevice() }
+                            if (device == null) {
+                                logs.add("❌ 未检测到 fastboot 设备")
+                                logs.add("请将设备重启到 bootloader/fastboot 模式")
+                                if (AdbManager.isConnected) logs.add("提示: 当前 ADB 已连接, 可点击「重启到 fastboot」")
+                                progress = null
+                                return@launch
+                            }
+                            if (!usbMgr.hasPermission(device)) {
+                                usbMgr.requestFastbootPermission(device)
+                                logs.add("请在系统弹窗中授权 USB 权限后再次点击「刷入」")
+                                progress = null
+                                return@launch
+                            }
+                            val rawConn = usbMgr.openDevice(device)
+                            if (rawConn == null) {
+                                logs.add("❌ 打开 USB 设备失败"); progress = null; return@launch
+                            }
+                            val client = FastbootClient()
+                            if (!client.open(device, rawConn)) {
+                                logs.add("❌ Fastboot 接口打开失败"); client.close()
+                                progress = null; return@launch
+                            }
+                            logs.add("✅ Fastboot 设备已连接, max-download=${client.getvar("max-download-size") ?: "?"}")
+                            progressLabel = "刷写 $partition ..."
+                            val ok = withContext(Dispatchers.IO) {
+                                client.flashImage(partition, path,
+                                    onInfo = { msg -> scope.launch { logs.add(msg) } },
+                                    onProgress = { pct -> scope.launch { progress = pct / 100f } })
+                            }
+                            client.close()
+                            progress = null
+                            progressLabel = if (ok) "✅ $partition 刷写完成" else "❌ $partition 刷写失败"
+                            logs.add(progressLabel!!)
+                        }
+                    }, colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary)) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null,
+                            modifier = Modifier.height(18.dp))
+                        Text(" 刷入 $partition")
+                    }
+
+                    OutlinedButton(onClick = {
+                        scope.launch {
+                            val usbMgr = UsbDeviceManager.get(ctx)
+                            val device = withContext(Dispatchers.IO) { usbMgr.findFastbootDevice() }
+                            if (device == null) { logs.add("❌ 未检测到 fastboot 设备"); return@launch }
+                            if (!usbMgr.hasPermission(device)) { usbMgr.requestFastbootPermission(device); return@launch }
+                            val rawConn = usbMgr.openDevice(device) ?: run {
+                                logs.add("❌ 打开 USB 设备失败"); return@launch
+                            }
+                            val client = FastbootClient()
+                            if (client.open(device, rawConn)) {
+                                logs.add("当前槽位: ${client.getvar("current-slot") ?: "?"}")
+                                logs.add("已刷写槽位: ${client.getvar("slot-count") ?: "?"}")
+                                logs.add("max-download: ${client.getvar("max-download-size") ?: "?"}")
+                                logs.add("产品: ${client.getvar("product") ?: "?"}")
+                                logs.add("已解锁: ${client.getvar("unlocked") ?: "?"}")
+                                client.reboot()
+                                logs.add("✓ 设备已重启")
+                            } else {
+                                logs.add("❌ Fastboot 接口打开失败")
+                            }
+                            client.close()
+                        }
+                    }) { Text("查询 + 重启") }
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+    LogTerminal(logs, progress, progressLabel, modifier = Modifier.fillMaxWidth())
+}
+
+@Composable
 private fun EdlTab() {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -276,7 +461,7 @@ private fun EdlTab() {
             Button(onClick = {
                 ctx.startActivity(Intent(ctx, LoaderPickerComposeActivity::class.java))
             }, modifier = Modifier.fillMaxWidth()) {
-                androidx.compose.material3.Icon(
+                Icon(
                     Icons.Default.Memory,
                     contentDescription = null, modifier = Modifier.height(18.dp)
                 )

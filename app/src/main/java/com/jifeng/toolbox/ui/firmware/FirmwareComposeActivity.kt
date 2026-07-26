@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,6 +27,7 @@ import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Source
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -47,10 +47,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -303,9 +305,247 @@ private fun FirmwareScreen() {
             }
             Spacer(Modifier.height(12.dp))
 
+            // ---------- 刷机包校验 (MD5/SHA256 + 结构) ----------
+            PackageVerifyCard(logs)
+
+            Spacer(Modifier.height(12.dp))
             LogTerminal(logs, progress, progressLabel, modifier = Modifier.fillMaxWidth())
         }
     }
+}
+
+@Composable
+private fun PackageVerifyCard(logs: MutableList<String>) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var pickedPath by remember { mutableStateOf<String?>(null) }
+    var expectedMd5 by remember { mutableStateOf("") }
+    var expectedSha256 by remember { mutableStateOf("") }
+    var result by remember { mutableStateOf("") }
+
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            val tmp = File(ctx.cacheDir, "jf_verify_${System.currentTimeMillis()}.zip")
+            try {
+                ctx.contentResolver.openInputStream(it)?.use { input ->
+                    tmp.outputStream().use { input.copyTo(it) }
+                }
+                pickedPath = tmp.absolutePath
+                logs.add("已选择: ${tmp.name} (${tmp.length() / 1024 / 1024} MB)")
+                result = ""
+            } catch (e: Exception) {
+                logs.add("✗ 读取失败: ${e.message}")
+            }
+        }
+    }
+
+    LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Source, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary)
+                Text("线刷包 / 卡刷包校验", style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+            }
+            Text("支持线刷包 (.zip / .tgz / rawprogram + firehose) / 卡刷包 (fastboot .zip / Recovery update.zip) / 单镜像 .img\n" +
+                    "自动校验: 包结构 + MD5 + SHA256, 与官方/作者公布的指纹比对。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { launcher.launch(arrayOf("*/*")) }) {
+                    Icon(Icons.Default.Source, contentDescription = null, modifier = Modifier.height(18.dp))
+                    Spacer(Modifier.height(0.dp))
+                    Text(" 选择刷机包")
+                }
+                pickedPath?.let {
+                    Text("已选: ${File(it).name}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f).padding(top = 8.dp))
+                }
+            }
+
+            pickedPath?.let { path ->
+                OutlinedTextField(value = expectedMd5, onValueChange = { expectedMd5 = it },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("预期 MD5 (可选)") })
+                OutlinedTextField(value = expectedSha256, onValueChange = { expectedSha256 = it },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("预期 SHA-256 (可选)") })
+
+                Button(onClick = {
+                    scope.launch {
+                        logs.add("──── 开始校验 ${File(path).name} ────")
+                        result = ""
+                        val (ok, report) = verifyPackage(path, expectedMd5, expectedSha256, logs)
+                        result = if (ok) "✅ 校验通过\n$report" else "❌ 校验失败\n$report"
+                        logs.add(result.replace("\n", " "))
+                    }
+                }, modifier = Modifier.fillMaxWidth().height(46.dp)) {
+                    Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.height(18.dp))
+                    Text(" 开始校验")
+                }
+
+                if (result.isNotBlank()) {
+                    LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 12.dp) {
+                        Text(result,
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                            color = if (result.startsWith("✅")) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private suspend fun verifyPackage(
+    path: String,
+    expectedMd5: String,
+    expectedSha256: String,
+    logs: MutableList<String>
+): Pair<Boolean, String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    val f = File(path)
+    if (!f.exists()) return@withContext Pair(false, "文件不存在")
+
+    val sb = StringBuilder()
+    sb.append("文件: ${f.name}\n")
+    sb.append("大小: ${f.length()} bytes (${f.length() / 1024 / 1024} MB)\n")
+
+    // 1. 结构校验
+    val name = f.name.lowercase()
+    val structure = when {
+        name.endsWith(".img") -> {
+            val head = f.inputStream().use { input ->
+                val expected = minOf(512, f.length().toInt())
+                val buf = ByteArray(expected)
+                var read = 0
+                while (read < expected) {
+                    val n = input.read(buf, read, expected - read)
+                    if (n <= 0) break
+                    read += n
+                }
+                if (read < expected) buf.copyOf(read) else buf
+            }
+            val magic = head.takeIf { it.size >= 4 }?.let { String(it, 0, minOf(4, it.size)) } ?: ""
+            val isBootImg = head.size >= 8 && String(head, 0, 8) == "ANDROID!"
+            val isExtImg = magic.startsWith("\u0014") || name.contains("system") || name.contains("vendor")
+            sb.append("类型: 单镜像 .img\n")
+            sb.append("魔数: ${magic.replace("\n", "\\n").take(8)}\n")
+            sb.append(if (isBootImg) "识别: Android boot.img ✅\n"
+                      else if (isExtImg) "识别: ext/sparse 文件系统镜像\n"
+                      else "识别: 未知镜像格式\n")
+            true
+        }
+        name.endsWith(".zip") || name.endsWith(".tgz") -> {
+            sb.append("类型: ZIP / TGZ 压缩包\n")
+            try {
+                if (name.endsWith(".tgz")) {
+                    val tmp = File(f.parentFile, f.nameWithoutExtension + ".tar")
+                    f.inputStream().use { input ->
+                        java.util.zip.GZIPInputStream(input).use { gz ->
+                            tmp.outputStream().use { gz.copyTo(it) }
+                        }
+                    }
+                    verifyZipStructure(tmp, sb, logs)
+                    tmp.delete()
+                } else {
+                    verifyZipStructure(f, sb, logs)
+                }
+                true
+            } catch (e: Exception) {
+                sb.append("⚠ ZIP 解析失败: ${e.message}\n")
+                false
+            }
+        }
+        else -> {
+            sb.append("类型: 未知\n")
+            true
+        }
+    }
+
+    // 2. MD5
+    val md5 = hashFile(f, "MD5")
+    sb.append("MD5: $md5\n")
+    val md5Ok = expectedMd5.isBlank() || expectedMd5.lowercase() == md5.lowercase()
+    if (expectedMd5.isNotBlank()) {
+        sb.append(if (md5Ok) "MD5 比对 ✅\n" else "MD5 比对 ❌ (预期 ${expectedMd5.lowercase()})\n")
+    }
+
+    // 3. SHA-256
+    val sha256 = hashFile(f, "SHA-256")
+    sb.append("SHA-256: $sha256\n")
+    val shaOk = expectedSha256.isBlank() || expectedSha256.lowercase() == sha256.lowercase()
+    if (expectedSha256.isNotBlank()) {
+        sb.append(if (shaOk) "SHA-256 比对 ✅\n" else "SHA-256 比对 ❌ (预期 ${expectedSha256.lowercase()})\n")
+    }
+
+    val ok = structure && md5Ok && shaOk
+    Pair(ok, sb.toString())
+}
+
+private fun verifyZipStructure(file: File, sb: StringBuilder, logs: MutableList<String>) {
+    try {
+        org.apache.commons.compress.archivers.zip.ZipFile(file).use { zf ->
+            val entries = zf.entries.toList().map { it.name }
+            sb.append("ZIP 条目数: ${entries.size}\n")
+            // 卡刷包特征
+            val hasAndroidInfo = entries.any { it.equals("android-info.txt", true) }
+            val hasImgs = entries.any { it.endsWith(".img", true) }
+            // OTA update.zip 特征
+            val hasPayload = entries.any { it.contains("payload.bin") }
+            val hasMetadata = entries.any { it.contains("META-INF/com/android/metadata") }
+            // 9008 线刷包特征
+            val hasProg = entries.any { it.contains("prog_firehose") || it.contains("firehose") }
+            val hasRaw = entries.any { it.contains("rawprogram") }
+
+            when {
+                hasAndroidInfo && hasImgs -> {
+                    sb.append("结构: fastboot 卡刷包 ✅ (含 android-info.txt + ${entries.count { it.endsWith(".img") }} 个 .img)\n")
+                }
+                hasPayload -> {
+                    sb.append("结构: OTA update.zip ✅ (含 payload.bin)\n")
+                    if (hasMetadata) sb.append("  含 META-INF metadata ✅\n")
+                }
+                hasProg && hasRaw -> {
+                    sb.append("结构: 9008 线刷包 ✅ (含 firehose + rawprogram)\n")
+                }
+                hasImgs && !hasAndroidInfo -> {
+                    sb.append("结构: 含镜像的 ZIP (无 android-info, 可能是 TWRP 备份或单包) ⚠\n")
+                }
+                else -> {
+                    sb.append("结构: 未知 ZIP 内容\n")
+                }
+            }
+            // 列出关键文件
+            entries.filter { it.endsWith(".img") || it == "android-info.txt" ||
+                    it.contains("payload.bin") || it.contains("rawprogram") ||
+                    it.contains("firehose") || it.contains("metadata") }.take(15).forEach {
+                sb.append("  • $it\n")
+            }
+        }
+    } catch (e: Exception) {
+        sb.append("⚠ ZIP 读取失败: ${e.message}\n")
+    }
+}
+
+private fun hashFile(file: File, algorithm: String): String {
+    return try {
+        val md = java.security.MessageDigest.getInstance(algorithm)
+        file.inputStream().use { input ->
+            val buf = ByteArray(8192)
+            while (true) {
+                val n = input.read(buf)
+                if (n <= 0) break
+                md.update(buf, 0, n)
+            }
+        }
+        md.digest().joinToString("") { "%02x".format(it) }
+    } catch (e: Exception) { "(计算失败)" }
 }
 
 @Composable

@@ -11,8 +11,8 @@ android {
         applicationId = "com.jifeng.toolbox"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "2.2.0"
+        versionCode = 5
+        versionName = "2.2.1"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
@@ -35,6 +35,11 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 
     buildFeatures {

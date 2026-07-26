@@ -122,16 +122,19 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
         isRunning = true
         statusText = "执行中..."
         scope.launch {
-            val result = if (tab == 0) {
+            if (tab == 0) {
                 // 本地: 通过 ShellHub daemon 执行 (uid 2000 shell 权限)
-                withContext(Dispatchers.IO) {
+                val startMs = System.currentTimeMillis()
+                val out = withContext(Dispatchers.IO) {
                     com.jifeng.toolbox.tools.ShellHub.exec(cmd)
                 } ?: "(本地 daemon 未启动或无权限)"
+                logs.add(out)
+                logs.add("(${System.currentTimeMillis() - startMs}ms)")
             } else {
-                TerminalEngine.execute(language, cmd)
+                val result = TerminalEngine.execute(language, cmd)
+                logs.add(result.output)
+                if (result.durationMs > 0) logs.add("(${result.durationMs}ms)")
             }
-            logs.add(result.output)
-            if (result.durationMs > 0) logs.add("(${result.durationMs}ms)")
             isRunning = false
             statusText = ""
         }
@@ -157,19 +160,31 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
             // 三 tab 切换
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
-                    text = { Text("本地") }, leadingIcon = {
-                        Icon(Icons.Default.Computer, contentDescription = null,
-                            modifier = Modifier.height(16.dp))
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Computer, contentDescription = null,
+                                modifier = Modifier.height(16.dp))
+                            Text("本地")
+                        }
                     })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
-                    text = { Text("远程 ADB") }, leadingIcon = {
-                        Icon(Icons.Default.Terminal, contentDescription = null,
-                            modifier = Modifier.height(16.dp))
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Terminal, contentDescription = null,
+                                modifier = Modifier.height(16.dp))
+                            Text("远程 ADB")
+                        }
                     })
                 Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 },
-                    text = { Text("SSH") }, leadingIcon = {
-                        Icon(Icons.Default.Wifi, contentDescription = null,
-                            modifier = Modifier.height(16.dp))
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Wifi, contentDescription = null,
+                                modifier = Modifier.height(16.dp))
+                            Text("SSH")
+                        }
                     })
             }
             Spacer(Modifier.height(8.dp))

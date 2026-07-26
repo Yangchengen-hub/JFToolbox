@@ -100,11 +100,10 @@ class AdbPair(
             // 4. 计算 X25519 共享密钥
             val serverPub = X25519PublicKeyParameters(serverPubBytes, 0)
             val sharedSecret = ByteArray(32)
-            ourPriv.generateSecret().let { privBytes ->
-                val agreement = X25519Agreement()
-                agreement.init(X25519PrivateKeyParameters(privBytes, 0))
-                agreement.calculateAgreement(serverPub, sharedSecret, 0)
-            }
+            val privBytes = ourPriv.encoded
+            val agreement = X25519Agreement()
+            agreement.init(X25519PrivateKeyParameters(privBytes, 0))
+            agreement.calculateAgreement(serverPub, sharedSecret, 0)
             Logger.d(TAG, "X25519 共享密钥已建立")
 
             // 5. HKDF-SHA256 派生 32B AES 密钥

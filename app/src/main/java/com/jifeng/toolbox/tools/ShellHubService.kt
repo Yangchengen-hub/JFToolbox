@@ -61,7 +61,8 @@ class ShellHubService : Service() {
             ShellHub.pendingAuth.collect { req ->
                 if (req != null) {
                     Logger.i(TAG, "拉起授权悬浮窗: ${req.packageName}")
-                    val i = Intent(this@ShellHubService, ShellHubAuthActivity::class.java).apply {
+                    val i = Intent(this@ShellHubService,
+                        com.jifeng.toolbox.ui.tools.ShellHubAuthActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         putExtra(EXTRA_PACKAGE, req.packageName)
                         putExtra(EXTRA_LABEL, req.label)

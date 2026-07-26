@@ -1,13 +1,18 @@
 package com.jifeng.toolbox.ui.tweak
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,15 +27,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -44,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jifeng.toolbox.adb.AdbManager
@@ -51,6 +61,7 @@ import com.jifeng.toolbox.core.Logger
 import com.jifeng.toolbox.core.RootDetector
 import com.jifeng.toolbox.ui.components.JFScaffold
 import com.jifeng.toolbox.ui.components.LiquidGlassCard
+import com.jifeng.toolbox.ui.components.LiquidGlassClickableCard
 import com.jifeng.toolbox.ui.components.LogTerminal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -119,6 +130,89 @@ private val OTA_PACKAGES = mapOf(
         "com.google.android.gms.update",
         "com.android.updater"
     )
+)
+
+/** 常用指令库: 重启 / ADB shell / fastboot / 属性查询 / 应用管理。 */
+private data class CmdSnippet(
+    val category: String,
+    val title: String,
+    val command: String,
+    val desc: String = ""
+)
+
+private val CMD_SNIPPETS = listOf(
+    // ---- 重启指令 ----
+    CmdSnippet("重启指令", "重启系统", "reboot", "正常重启到系统"),
+    CmdSnippet("重启指令", "重启到 Recovery", "adb reboot recovery", "进入官方/TWRP Recovery"),
+    CmdSnippet("重启指令", "重启到 Bootloader", "adb reboot bootloader", "进入 fastboot 模式刷机"),
+    CmdSnippet("重启指令", "重启到 9008 (EDL)", "adb reboot edl", "高通 9008 救砖模式"),
+    CmdSnippet("重启指令", "重启到 Sideload", "adb reboot sideload", "进入 sideload 模式 (刷 OTA)"),
+    CmdSnippet("重启指令", "重启到 Fastbootd", "adb reboot fastboot", "Android 10+ 用户空间 fastboot"),
+    CmdSnippet("重启指令", "Soft Reboot", "killall zygote", "仅重启 zygote (Soft Reboot, 不断电)"),
+    CmdSnippet("重启指令", "重启 SystemUI", "pkill -l SIGKILL system_server", "杀掉 system_server 触发软重启"),
+    CmdSnippet("重启指令", "重启 SystemUI (Alt)", "am force-stop com.android.systemui", "仅重启 SystemUI 不重启系统"),
+    // ---- ADB shell ----
+    CmdSnippet("ADB Shell", "查看设备序列号", "getprop ro.serialno"),
+    CmdSnippet("ADB Shell", "查看 Android 版本", "getprop ro.build.version.release"),
+    CmdSnippet("ADB Shell", "查看 SDK 版本", "getprop ro.build.version.sdk"),
+    CmdSnippet("ADB Shell", "查看机型", "getprop ro.product.model"),
+    CmdSnippet("ADB Shell", "查看厂商", "getprop ro.product.manufacturer"),
+    CmdSnippet("ADB Shell", "查看主板", "getprop ro.product.board"),
+    CmdSnippet("ADB Shell", "查看芯片组", "getprop ro.board.platform"),
+    CmdSnippet("ADB Shell", "查看 ABI", "getprop ro.product.cpu.abi"),
+    CmdSnippet("ADB Shell", "查看安全补丁", "getprop ro.build.version.security_patch"),
+    CmdSnippet("ADB Shell", "查看 build fingerprint", "getprop ro.build.fingerprint"),
+    CmdSnippet("ADB Shell", "查看电池电量", "dumpsys battery | grep level"),
+    CmdSnippet("ADB Shell", "查看屏幕分辨率", "wm size"),
+    CmdSnippet("ADB Shell", "查看屏幕 DPI", "wm density"),
+    CmdSnippet("ADB Shell", "查看 IP 地址", "ip addr show wlan0"),
+    CmdSnippet("ADB Shell", "查看 MAC 地址", "ip link show wlan0"),
+    CmdSnippet("ADB Shell", "查看内存", "cat /proc/meminfo | head -5"),
+    CmdSnippet("ADB Shell", "查看存储", "df -h /data"),
+    CmdSnippet("ADB Shell", "查看 CPU 信息", "cat /proc/cpuinfo | head -20"),
+    CmdSnippet("ADB Shell", "查看 Top 进程", "top -n 1 -m 10"),
+    CmdSnippet("ADB Shell", "查看所有包名", "pm list packages | grep -i keyword"),
+    CmdSnippet("ADB Shell", "查看系统包", "pm list packages -s"),
+    CmdSnippet("ADB Shell", "查看第三方包", "pm list packages -3"),
+    CmdSnippet("ADB Shell", "查看当前栈顶 Activity", "dumpsys activity activities | grep mResumedActivity"),
+    CmdSnippet("ADB Shell", "查看通知栏", "dumpsys notification"),
+    CmdSnippet("ADB Shell", "截图", "screencap -p /sdcard/jf_screen.png"),
+    CmdSnippet("ADB Shell", "录屏 30s", "screenrecord --time-limit 30 /sdcard/jf_record.mp4"),
+    CmdSnippet("ADB Shell", "查看日志", "logcat -d -t 100"),
+    CmdSnippet("ADB Shell", "清除日志", "logcat -c"),
+    // ---- Fastboot ----
+    CmdSnippet("Fastboot", "查看 fastboot 设备", "fastboot devices"),
+    CmdSnippet("Fastboot", "查看所有变量", "fastboot getvar all"),
+    CmdSnippet("Fastboot", "查看产品", "fastboot getvar product"),
+    CmdSnippet("Fastboot", "查看已解锁状态", "fastboot getvar unlocked"),
+    CmdSnippet("Fastboot", "查看当前槽位", "fastboot getvar current-slot"),
+    CmdSnippet("Fastboot", "查看槽位数", "fastboot getvar slot-count"),
+    CmdSnippet("Fastboot", "查看 max-download", "fastboot getvar max-download-size"),
+    CmdSnippet("Fastboot", "切换到槽位 A", "fastboot --set-active=a"),
+    CmdSnippet("Fastboot", "切换到槽位 B", "fastboot --set-active=b"),
+    CmdSnippet("Fastboot", "刷 boot 镜像", "fastboot flash boot boot.img"),
+    CmdSnippet("Fastboot", "刷 recovery 镜像", "fastboot flash recovery recovery.img"),
+    CmdSnippet("Fastboot", "刷 vbmeta (关闭校验)", "fastboot flash vbmeta --disable-verity --disable-verification vbmeta.img"),
+    CmdSnippet("Fastboot", "擦除 userdata", "fastboot erase userdata"),
+    CmdSnippet("Fastboot", "格式化 data", "fastboot -w"),
+    CmdSnippet("Fastboot", "重启系统", "fastboot reboot"),
+    CmdSnippet("Fastboot", "重启到 Recovery", "fastboot reboot recovery"),
+    CmdSnippet("Fastboot", "重启到 Bootloader", "fastboot reboot bootloader"),
+    // ---- 应用管理 ----
+    CmdSnippet("应用管理", "安装 APK", "pm install -r /sdcard/app.apk"),
+    CmdSnippet("应用管理", "卸载应用", "pm uninstall --user 0 com.xxx.xxx", "免 Root 卸载系统应用 (用户配置文件)"),
+    CmdSnippet("应用管理", "禁用应用", "pm disable-user com.xxx.xxx"),
+    CmdSnippet("应用管理", "启用应用", "pm enable com.xxx.xxx"),
+    CmdSnippet("应用管理", "隐藏应用", "pm hide com.xxx.xxx", "需系统签名/Root"),
+    CmdSnippet("应用管理", "清除数据", "pm clear com.xxx.xxx"),
+    CmdSnippet("应用管理", "强制停止", "am force-stop com.xxx.xxx"),
+    CmdSnippet("应用管理", "导出 APK", "pm path com.xxx.xxx", "再 adb pull 路径"),
+    // ---- 属性修改 ----
+    CmdSnippet("属性查询", "查看所有属性", "getprop"),
+    CmdSnippet("属性查询", "设置属性 (临时)", "setprop persist.xxx.yyy 1", "重启后保留 (persist.)"),
+    CmdSnippet("属性查询", "查看 SELinux", "getenforce"),
+    CmdSnippet("属性查询", "设置 SELinux 宽松", "setenforce 0", "需 Root, 临时"),
+    CmdSnippet("属性查询", "查看 iptables", "iptables -L -n")
 )
 
 @Composable
@@ -199,6 +293,75 @@ private fun TweakScreen() {
         ) {
             Text("玩机工具", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
+
+            // ---- 常用指令库 ----
+            var selectedCat by remember { mutableStateOf("全部") }
+            val cats = remember { listOf("全部") + CMD_SNIPPETS.map { it.category }.distinct() }
+            val filtered = remember(selectedCat) {
+                if (selectedCat == "全部") CMD_SNIPPETS
+                else CMD_SNIPPETS.filter { s -> s.category == selectedCat }
+            }
+            LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Terminal, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary)
+                        Text("常用指令库", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.width(8.dp))
+                        cats.forEach { c ->
+                            androidx.compose.material3.FilterChip(
+                                selected = selectedCat == c,
+                                onClick = { selectedCat = c },
+                                label = { Text(c, style = MaterialTheme.typography.labelSmall) }
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                    }
+
+
+                    Text("共 ${filtered.size} 条指令, 点击卡片复制指令, 长按直接在本设备执行",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    filtered.forEach { snip ->
+                        LiquidGlassClickableCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            cornerRadius = 10.dp,
+                            padding = 10.dp,
+                            onClick = {
+                                val clip = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clip.setPrimaryClip(ClipData.newPlainText("JF Cmd", snip.command))
+                                Toast.makeText(ctx, "已复制: ${snip.command}",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.Code, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.height(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(snip.title, style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Medium)
+                                    Text(snip.command, style = MaterialTheme.typography.bodySmall.copy(
+                                        fontFamily = FontFamily.Monospace),
+                                        color = MaterialTheme.colorScheme.primary)
+                                    if (snip.desc.isNotBlank()) {
+                                        Text(snip.desc, style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                Icon(Icons.Default.ContentCopy, contentDescription = "复制",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
 
             // ---- Root 状态 ----
             LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {

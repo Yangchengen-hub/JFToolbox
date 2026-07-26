@@ -520,25 +520,29 @@ object FirmwareSearcher {
                         val date = rel.optString("date")
                         val buildName = rel.optString("build_type").ifBlank { "stable" }
 
-                        val downloads = rel.optJSONObject("downloads") ?: continue
-                        val types = downloads.keys()
-                        while (types.hasNext()) {
-                            val typeKey = types.next()
-                            val typeObj = downloads.optJSONObject(typeKey) ?: continue
-                            val url = typeObj.optString("url") ?: continue
-                            val name = typeObj.optString("name").ifBlank { "$devName-OrangeFox-$version.img" }
-                            val size = typeObj.optLong("size", 0L)
-                            out.add(FirmwareEntry(
-                                repoName = "OrangeFox-API/$devName",
-                                releaseName = "OrangeFox $version ($buildName)",
-                                releaseTag = version,
-                                publishedAt = date,
-                                assets = listOf(FirmwareAsset(name, url, size)),
-                                sourceLabel = "OrangeFox 官方 API · $devName",
-                                sourceType = SourceType.OFFICIAL_API,
-                                homepageUrl = "https://orangefox.download/device/$devId"
-                            ))
-                            break  // 只取一种类型 (通常只有 .img)
+                        val downloads = rel.optJSONObject("downloads")
+                        if (downloads != null) {
+                            val types = downloads.keys()
+                            while (types.hasNext()) {
+                                val typeKey = types.next()
+                                val typeObj = downloads.optJSONObject(typeKey)
+                                if (typeObj == null) continue
+                                val url = typeObj.optString("url")
+                                if (url.isBlank()) continue
+                                val name = typeObj.optString("name").ifBlank { "$devName-OrangeFox-$version.img" }
+                                val size = typeObj.optLong("size", 0L)
+                                out.add(FirmwareEntry(
+                                    repoName = "OrangeFox-API/$devName",
+                                    releaseName = "OrangeFox $version ($buildName)",
+                                    releaseTag = version,
+                                    publishedAt = date,
+                                    assets = listOf(FirmwareAsset(name, url, size)),
+                                    sourceLabel = "OrangeFox 官方 API · $devName",
+                                    sourceType = SourceType.OFFICIAL_API,
+                                    homepageUrl = "https://orangefox.download/device/$devId"
+                                ))
+                                break  // 只取一种类型 (通常只有 .img)
+                            }
                         }
                     }
                 }

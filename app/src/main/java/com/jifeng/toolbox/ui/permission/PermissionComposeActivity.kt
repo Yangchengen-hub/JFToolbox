@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Usb
+import androidx.compose.material.icons.filled.Window
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -85,24 +86,36 @@ private fun PermissionScreen(onProceed: () -> Unit) {
     // 根据系统版本构建需要请求的运行时权限列表
     val runtimePerms: List<String> = remember {
         buildList {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(Manifest.permission.POST_NOTIFICATIONS)
                 add(Manifest.permission.READ_MEDIA_IMAGES)
                 add(Manifest.permission.READ_MEDIA_VIDEO)
                 add(Manifest.permission.READ_MEDIA_AUDIO)
             }
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) { // Android 12 及以下
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
                 add(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) { // Android 10 及以下
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
+            add(Manifest.permission.INTERNET)
+            add(Manifest.permission.ACCESS_NETWORK_STATE)
+            add(Manifest.permission.ACCESS_WIFI_STATE)
         }
     }
 
     // 展示用权限说明列表
     val permInfos: List<PermInfo> = remember {
         buildList {
+            add(PermInfo("网络权限 (INTERNET)",
+                "用于固件下载、GitHub API 访问、酷安社区 ROM 源检索、SSH 连接。",
+                Icons.Default.Notifications))
+            add(PermInfo("网络状态 (ACCESS_NETWORK_STATE)",
+                "检测网络连接状态, 优化下载策略。",
+                Icons.Default.Notifications))
+            add(PermInfo("WiFi 状态 (ACCESS_WIFI_STATE)",
+                "获取 WiFi 信息, 支持无线调试配对。",
+                Icons.Default.Notifications))
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(PermInfo("通知权限 (POST_NOTIFICATIONS)",
                     "用于显示刷机进度、下载完成、ADB 守护服务等前台通知。",
@@ -124,9 +137,17 @@ private fun PermissionScreen(onProceed: () -> Unit) {
                     "读写刷机包、备份文件到设备存储。",
                     Icons.Default.Folder))
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                add(PermInfo("悬浮窗权限 (SYSTEM_ALERT_WINDOW)",
+                    "用于显示 ADB 授权悬浮窗、通知栏快速配对、屏幕镜像悬浮控制。",
+                    Icons.Default.Window))
+            }
             add(PermInfo("USB 权限",
                 "连接 USB OTG 设备时由系统弹窗索取, 本页面仅作提示, 无需手动授予。",
                 Icons.Default.Usb))
+            add(PermInfo("应用安装权限 (REQUEST_INSTALL_PACKAGES)",
+                "用于安装下载的 APK 刷机包。",
+                Icons.Default.Apps))
         }
     }
 
@@ -161,6 +182,28 @@ private fun PermissionScreen(onProceed: () -> Unit) {
                             )
                         } catch (_: Exception) {}
                     }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                    !Settings.canDrawOverlays(ctx)
+                ) {
+                    try {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${ctx.packageName}")
+                        )
+                        ctx.startActivity(intent)
+                    } catch (_: Exception) {}
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                    !ctx.packageManager.canRequestPackageInstalls()
+                ) {
+                    try {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:${ctx.packageName}")
+                        )
+                        ctx.startActivity(intent)
+                    } catch (_: Exception) {}
                 }
             }
         }

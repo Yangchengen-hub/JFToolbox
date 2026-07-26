@@ -8,15 +8,20 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.webkit.SslErrorHandler
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.MediaController
 import android.widget.Toast
 import android.widget.VideoView
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -161,13 +166,36 @@ private fun WebBrowseTab(initialUrl: String? = null) {
                         settings.domStorageEnabled = true
                         settings.allowFileAccess = true
                         settings.allowContentAccess = true
-                        webViewClient = WebViewClient()
+                        settings.setSupportZoom(true)
+                        settings.builtInZoomControls = true
+                        settings.displayZoomControls = false
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        }
+                        webViewClient = object : WebViewClient() {
+                            override fun onReceivedSslError(
+                                view: WebView?,
+                                handler: SslErrorHandler?,
+                                error: android.net.http.SslError?
+                            ) {
+                                handler?.proceed()
+                            }
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView?,
+                                request: WebResourceRequest?
+                            ): Boolean {
+                                if (request != null && request.url != null) {
+                                    view?.loadUrl(request.url.toString())
+                                    return true
+                                }
+                                return super.shouldOverrideUrlLoading(view, request)
+                            }
+                        }
                         webChromeClient = WebChromeClient()
                         loadUrl(url)
                     }
                 },
                 update = { web ->
-                    // 仅在 loadTrigger 变化时显式加载, 避免 url 输入过程中频繁重载
                     if (loadTrigger > 0) web.loadUrl(url)
                 },
                 modifier = Modifier.fillMaxSize()

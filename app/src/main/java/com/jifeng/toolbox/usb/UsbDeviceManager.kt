@@ -33,20 +33,66 @@ class UsbDeviceManager private constructor(private val app: Context) {
     /** 列出当前已插入的设备 (ADB 接口优先)。 */
     fun listDevices(): List<UsbDevice> = usbManager.deviceList.values.toList()
 
-    /** 判断设备是否暴露 ADB 接口 (class=0xFF subclass=0x42 protocol=0x01)。 */
-    fun isAdbDevice(device: UsbDevice): Boolean = findInterface(device, IFACE_PROTOCOL_ADB) != null
-
-    /** 判断设备是否暴露 Fastboot 接口 (class=0xFF subclass=0x42 protocol=0x03)。 */
-    fun isFastbootDevice(device: UsbDevice): Boolean = findInterface(device, IFACE_PROTOCOL_FASTBOOT) != null
-
-    private fun findInterface(device: UsbDevice, protocol: Int): UsbInterface? {
+    fun isAdbDevice(device: UsbDevice): Boolean {
         for (i in 0 until device.interfaceCount) {
             val iface = device.getInterface(i)
-            if (iface.interfaceClass == IFACE_CLASS &&
-                iface.interfaceSubclass == IFACE_SUBCLASS &&
-                iface.interfaceProtocol == protocol) return iface
+            if (isAdbInterface(iface)) return true
         }
-        return null
+        return false
+    }
+
+    fun isFastbootDevice(device: UsbDevice): Boolean {
+        for (i in 0 until device.interfaceCount) {
+            val iface = device.getInterface(i)
+            if (isFastbootInterface(iface)) return true
+        }
+        return false
+    }
+
+    fun isQualcommEdlDevice(device: UsbDevice): Boolean {
+        return device.vendorId == 0x05C6 &&
+            (device.productId == 0x9008 || device.productId == 0x9006 || device.productId == 0x900A)
+    }
+
+    fun isMediaTekPreloaderDevice(device: UsbDevice): Boolean {
+        return device.vendorId == 0x0E8D || device.vendorId == 0x22B8
+    }
+
+    private fun isAdbInterface(iface: UsbInterface): Boolean {
+        val clazz = iface.interfaceClass
+        val sub = iface.interfaceSubclass
+        val proto = iface.interfaceProtocol
+        return (clazz == IFACE_CLASS && sub == IFACE_SUBCLASS && proto == IFACE_PROTOCOL_ADB) ||
+            (clazz == 0xFF && sub == 0xFF && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x01 && proto == 0x01) ||
+            (clazz == 0xFF && sub == 0x02 && proto == 0x01) ||
+            (clazz == 0xFF && sub == 0x42 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x42 && proto == 0x02) ||
+            (clazz == 0xFF && sub == 0x42 && proto == 0x01) ||
+            (clazz == 0xFF && sub == 0x00 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x01 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x03 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x04 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x05 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x06 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x07 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x08 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x09 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x10 && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x42 && proto == 0x42) ||
+            (clazz == 0x02 && sub == 0x02 && proto == 0x01) ||
+            (clazz == 0x0A && sub == 0x00 && proto == 0x00)
+    }
+
+    private fun isFastbootInterface(iface: UsbInterface): Boolean {
+        val clazz = iface.interfaceClass
+        val sub = iface.interfaceSubclass
+        val proto = iface.interfaceProtocol
+        return (clazz == IFACE_CLASS && sub == IFACE_SUBCLASS && proto == IFACE_PROTOCOL_FASTBOOT) ||
+            (clazz == 0xFF && sub == 0x42 && proto == 0x02) ||
+            (clazz == 0xFF && sub == 0xFF && proto == 0x00) ||
+            (clazz == 0xFF && sub == 0x42 && proto == 0x03) ||
+            (clazz == 0xFF && sub == 0x00 && proto == 0x00)
     }
 
     /** 优先返回含 ADB 接口的设备, 没有则回退到第一个插入设备。 */
@@ -147,10 +193,18 @@ class UsbDeviceManager private constructor(private val app: Context) {
 
     /** 设备插入 (由热插拔广播触发)。ADB 设备自动请求权限连接。 */
     fun onDeviceAttached(device: UsbDevice) {
+        val isAdb = isAdbDevice(device)
+        val isFastboot = isFastbootDevice(device)
+        val isEdl = isQualcommEdlDevice(device)
+        val isMtk = isMediaTekPreloaderDevice(device)
         Logger.i(TAG, "设备插入: ${device.deviceName} vid=${device.vendorId} pid=${device.productId} " +
-            "adb=${isAdbDevice(device)} fastboot=${isFastbootDevice(device)}")
-        if (isAdbDevice(device)) {
-            requestPermission(device)
+            "adb=$isAdb fastboot=$isFastboot edl=$isEdl mtk=$isMtk")
+
+        when {
+            isAdb -> requestPermission(device)
+            isFastboot -> requestFastbootPermission(device)
+            isEdl -> Logger.w(TAG, "检测到 Qualcomm EDL 模式设备, 请使用专用刷机工具")
+            isMtk -> Logger.w(TAG, "检测到 MTK Preloader 设备, 请使用专用刷机工具")
         }
     }
 

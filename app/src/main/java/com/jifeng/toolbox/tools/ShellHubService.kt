@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.jifeng.toolbox.R
 import com.jifeng.toolbox.adb.AdbManager
 import com.jifeng.toolbox.core.Logger
+import com.jifeng.toolbox.ui.wireless.PairingOverlayActivity
 import com.jifeng.toolbox.ui.wireless.WirelessDebugComposeActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,10 +41,6 @@ class ShellHubService : Service() {
         startForeground(NOTIF_ID, buildNotification("Shell 中枢运行中"))
         Logger.i(TAG, "ShellHubService 已启动 (前台)")
         watchAuthRequests()
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -97,14 +94,51 @@ class ShellHubService : Service() {
             this, 0, tapIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+
+        val pairingIntent = Intent(this, PairingOverlayActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        }
+        val pairingPi = PendingIntent.getActivity(
+            this, 1, pairingIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val stopIntent = Intent(this, ShellHubService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPi = PendingIntent.getService(
+            this, 2, stopIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
             .setContentTitle("极风工具箱 · Shell 中枢")
             .setContentText(text)
             .setContentIntent(pi)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(Notification.CATEGORY_SERVICE)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            builder.addAction(
+                android.R.drawable.ic_menu_add, "配对", pairingPi
+            )
+            builder.addAction(
+                android.R.drawable.ic_menu_close_clear_cancel, "停止", stopPi
+            )
+        }
+
+        return builder.build()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        return START_STICKY
     }
 
     companion object {
@@ -115,5 +149,6 @@ class ShellHubService : Service() {
         const val EXTRA_PACKAGE = "extra_pkg"
         const val EXTRA_LABEL = "extra_label"
         const val EXTRA_UID = "extra_uid"
+        const val ACTION_STOP = "com.jifeng.toolbox.SHELLHUB_STOP"
     }
 }

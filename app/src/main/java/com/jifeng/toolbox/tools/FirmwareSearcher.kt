@@ -137,148 +137,172 @@ object FirmwareSearcher {
      */
     val COOLAPK_SOURCES: List<CoolapkSource> = listOf(
         CoolapkSource(
-            title = "酷安 - Pixel ROM 大全 (像素系列)",
-            author = "@某只寄托",
-            url = "https://www.coolapk.com/feed/10000001",
-            tags = listOf("pixel", "rom", "google", "lineageos"),
-            deviceCodes = listOf("sargo", "bonito", "redfin", "bramble", "barbet", "raven", "oriole", "bluejay", "panther", "cheetah", "lynx", "tangorpro"),
-            description = "Pixel 系列 (3a-7 Pro) 各类 ROM 综合合集"
+            title = "大佬自建站 - ROM基地 (ROMJD)",
+            author = "@ROM基地",
+            url = "http://www.romjd.com/",
+            tags = listOf("romjd", "镜像站", "rom", "firmware"),
+            deviceCodes = listOf("alioth", "raphael", "sargo", "bonito", "lemonade", "RMX3081", "SM-S9210", "PD2"),
+            description = "国内最大最专业的安卓ROM刷机包资源站, 1700+品牌, 22000+ROM包"
         ),
         CoolapkSource(
-            title = "酷安 - 小米刷机包 ROM 大全",
-            author = "@小米ROM搬运工",
-            url = "https://www.coolapk.com/feed/10000002",
+            title = "大佬自建站 - MIUI官方ROM仓库",
+            author = "@海力力",
+            url = "https://roms.miuier.com/",
+            tags = listOf("miui", "xiaomi", "hyperos", "rom"),
+            deviceCodes = listOf("alioth", "raphael", "umi", "cetus", "vermeer", "aurora", "nabu", "psyche", "thor", "ruby", "lmi"),
+            description = "酷安大佬@海力力维护的MIUI官方ROM仓库, 每日更新"
+        ),
+        CoolapkSource(
+            title = "大佬自建站 - HyperOS Fans",
+            author = "@HyperOSFans",
+            url = "https://hyperos.fans/zh/devices",
+            tags = listOf("hyperos", "xiaomi", "rom"),
+            deviceCodes = listOf("alioth", "nabu", "psyche", "thor", "ruby", "lmi", "marble", "garnet"),
+            description = "HyperOS官方固件下载, 小米/红米全系列"
+        ),
+        CoolapkSource(
+            title = "大佬自建站 - 大侠阿木云盘",
+            author = "@大侠阿木",
+            url = "https://yun.daxiaamu.com/",
+            tags = listOf("oneplus", "oppo", "realme", "rom", "tool"),
+            deviceCodes = listOf("lemonade", "lemonadep", "kebab", "instantnoodle", "CPH2399", "CPH2449", "RMX3081", "RMX3360"),
+            description = "酷安知名博主大侠阿木的资源盘, 一加/OPPO/真我ROM"
+        ),
+        CoolapkSource(
+            title = "大佬自建站 - OPPO/一加/真我 ROM",
+            author = "@OPPO-ROM",
+            url = "https://rom.oppo.help/",
+            tags = listOf("oppo", "oneplus", "realme", "coloros", "rom"),
+            deviceCodes = listOf("lemonade", "ossi", "taro", "aston", "davinci", "RMX3081", "RMX3360"),
+            description = "OPPO/一加/真我官方ROM下载, 酷安网友收集"
+        ),
+        CoolapkSource(
+            title = "大佬自建站 - PureSky净空ROM",
+            author = "@PureSky",
+            url = "https://jk.511i.cn/",
+            tags = listOf("miui", "xiaomi", "custom", "rom"),
+            deviceCodes = listOf("alioth", "raphael", "umi", "cetus", "vermeer", "aurora"),
+            description = "酷安@骁亿维护的MIUI官改ROM, 净空ROM工作室"
+        ),
+        CoolapkSource(
+            title = "大佬自建站 - ROM中国",
+            author = "@ROM中国",
+            url = "https://www.cnroms.com/",
+            tags = listOf("rom", "firmware", "官方", "救砖"),
+            deviceCodes = listOf("SM-S9210", "SM-S926", "SM-S928", "PD2", "PGT-AN00", "CMA-AN00"),
+            description = "官方原厂固件下载站, 三星/OPPO/vivo/荣耀全系列"
+        ),
+        CoolapkSource(
+            title = "大佬自建站 - 三星固件 SAMFW",
+            author = "@SAMFW",
+            url = "https://samfw.com/",
+            tags = listOf("samsung", "oneui", "firmware"),
+            deviceCodes = listOf("SM-S9210", "SM-S926", "SM-S928", "kona", "d1q", "o1q", "r8q"),
+            description = "三星官方固件下载, 支持所有三星机型"
+        ),
+        CoolapkSource(
+            title = "大佬自建站 - XiaomiROM",
+            author = "@XiaomiROM",
+            url = "https://xiaomirom.com/series",
             tags = listOf("xiaomi", "miui", "hyperos", "rom"),
-            deviceCodes = listOf("alioth", "raphael", "umi", "cetus", "vermeer", "aurora", "nabu", "psyche", "thor", "ruby", "lmi", "raphaelin"),
-            description = "小米 11/12/13/14 全系列 MIUI/HyperOS ROM"
+            deviceCodes = listOf("alioth", "raphael", "sweet", "rose", "lisa", "evergo", "fire", "vela"),
+            description = "小米官方ROM下载汇总"
         ),
         CoolapkSource(
-            title = "酷安 - Redmi 红米 ROM 合集",
-            author = "@红米玩家",
-            url = "https://www.coolapk.com/feed/10000003",
-            tags = listOf("redmi", "miui", "hyperos", "rom"),
-            deviceCodes = listOf("alioth", "sweet", "rose", "lisa", "evergo", "fire", "vela", "marble", "garnet", "poco"),
-            description = "Redmi Note/K 系列全 ROM 合集"
+            title = "大佬自建站 - FiimeROM",
+            author = "@Fiime",
+            url = "https://mi.fiime.cn/",
+            tags = listOf("xiaomi", "redmi", "rom", "tool"),
+            deviceCodes = listOf("alioth", "raphael", "sweet", "rose", "lisa", "marble", "garnet"),
+            description = "专业小米/红米玩机资源平台"
         ),
         CoolapkSource(
-            title = "酷安 - 一加 OxygenOS ROM 合集",
-            author = "@一加工具箱",
-            url = "https://www.coolapk.com/feed/10000004",
-            tags = listOf("oneplus", "oxygenos", "coloros", "rom"),
-            deviceCodes = listOf("lemonade", "lemonadep", "oneplus9", "nord2", "kebab", "instantnoodle", "OP5955", "OP5945", "CPH2399", "CPH2449"),
-            description = "一加 7-12 系列 OxygenOS / ColorOS ROM"
+            title = "大佬自建站 - Moto固件镜像",
+            author = "@Lolinet",
+            url = "https://mirrors.lolinet.com/firmware/motorola/",
+            tags = listOf("motorola", "firmware", "rom"),
+            deviceCodes = listOf("edison", "lake", "nash", "berkeley", "rome", "capri"),
+            description = "摩托罗拉官方固件镜像站"
         ),
         CoolapkSource(
-            title = "酷安 - OPPO ColorOS 固件合集",
-            author = "@OPPO固件库",
-            url = "https://www.coolapk.com/feed/10000005",
-            tags = listOf("oppo", "coloros", "rom"),
-            deviceCodes = listOf("ossi", "taro", "mt6989", "aston", "davinci", "PD2", "PGW110", "PGJM10"),
-            description = "OPPO Find/Reno/A 系列 ColorOS 固件"
+            title = "大佬自建站 - Nothing Phone ROM",
+            author = "@spike0en",
+            url = "https://spike0en.github.io/nothing_archive/docs/firmware/",
+            tags = listOf("nothing", "phone", "firmware"),
+            deviceCodes = listOf("nothing", "ph1", "ph2"),
+            description = "Nothing Phone 官方固件归档"
         ),
         CoolapkSource(
-            title = "酷安 - vivo OriginOS / FunTouchOS 合集",
-            author = "@vivo固件搬运",
-            url = "https://www.coolapk.com/feed/10000006",
-            tags = listOf("vivo", "originos", "funtouch", "rom"),
-            deviceCodes = listOf("PD2", "PD3", "V22", "V21", "S15", "X90", "V2324A", "V2304A"),
-            description = "vivo X/S/Y 系列固件合集"
+            title = "大佬自建站 - MagiskCN ROM汇总",
+            author = "@MagiskCN",
+            url = "https://magiskcn.com/roms.html",
+            tags = listOf("rom", "汇总", "xiaomi", "oneplus", "oppo"),
+            deviceCodes = listOf("alioth", "lemonade", "ossi", "sargo", "raphael"),
+            description = "酷安网友收集的各品牌ROM下载汇总"
         ),
         CoolapkSource(
-            title = "酷安 - 三星 OneUI 固件合集",
-            author = "@三星ROM分享",
-            url = "https://www.coolapk.com/feed/10000007",
-            tags = listOf("samsung", "oneui", "firmware", "magisk"),
-            deviceCodes = listOf("SM-S9210", "SM-S926", "SM-S928", "kona", "sargo", "d1q", "o1q", "r8q", "a51x", "a72x"),
-            description = "三星 S/Note/A 系列国行/国际 OneUI 固件"
+            title = "大佬自建站 - ROM官网",
+            author = "@ROM官网",
+            url = "https://www.romgw.com/",
+            tags = listOf("romgw", "镜像站", "rom", "救砖"),
+            deviceCodes = listOf("MT6989", "MT6985", "MT6878", "SM-S9210", "PD2", "PGT-AN00"),
+            description = "线刷救砖ROM包、卡刷包、官方原厂固件"
         ),
         CoolapkSource(
-            title = "酷安 - Realme UI 固件合集",
-            author = "@RealmeROM搬运",
-            url = "https://www.coolapk.com/feed/10000008",
-            tags = listOf("realme", "realmeui", "rom"),
-            deviceCodes = listOf("RMX3081", "RMX3360", "RMX3461", "RE54C1", "RE58C1", "OP5955"),
-            description = "Realme GT/Note/X 系列固件合集"
+            title = "酷安 - 小白向刷机教程",
+            author = "@落笔成酌",
+            url = "https://www.coolapk.com/feed/9857726",
+            tags = listOf("tutorial", "guide", "刷机教程", "小白"),
+            deviceCodes = listOf("sargo", "bonito", "alioth", "lemonade"),
+            description = "酷安@落笔成酌的小白向刷机教程"
         ),
         CoolapkSource(
-            title = "酷安 - Honor MagicOS 固件合集",
-            author = "@荣耀固件库",
-            url = "https://www.coolapk.com/feed/10000009",
-            tags = listOf("honor", "magicos", "magicui"),
-            deviceCodes = listOf("CMA-AN00", "PGT-AN00", "ANY-AN00", "GT-AN00", "FLA-AN00"),
-            description = "荣耀 Magic/X/V 系列 MagicOS 固件"
+            title = "酷安 - 中兴家族工具箱",
+            author = "@某贼",
+            url = "https://www.coolapk.com/feed/55222939",
+            tags = listOf("zte", "nubia", "redmagic", "tool", "root"),
+            deviceCodes = listOf("nubia", "redmagic", "nx729j", "nx659j"),
+            description = "中兴/努比亚/红魔系列解锁BL、获取Root、9008刷机"
         ),
         CoolapkSource(
-            title = "酷安 - 联发科 MTK 平台 ROM 大全",
-            author = "@MTK固件研究",
-            url = "https://www.coolapk.com/feed/10000010",
+            title = "酷安 - 一加ACE3 9008刷机",
+            author = "@一加玩家",
+            url = "https://www.coolapk.com/feed/58724413",
+            tags = listOf("oneplus", "ace3", "9008", "刷机"),
+            deviceCodes = listOf("lemonade", "lemonadep"),
+            description = "一加ACE3 9008刷机教程与工具"
+        ),
+        CoolapkSource(
+            title = "酷安 - Pixel ROM 大全",
+            author = "@Pixel玩家",
+            url = "https://www.coolapk.com/search?q=PixelROM",
+            tags = listOf("pixel", "rom", "google", "lineageos"),
+            deviceCodes = listOf("sargo", "bonito", "redfin", "bramble", "barbet", "raven", "oriole"),
+            description = "Pixel 系列各类 ROM 综合合集"
+        ),
+        CoolapkSource(
+            title = "酷安 - 联发科 MTK ROM 大全",
+            author = "@MTK玩家",
+            url = "https://www.coolapk.com/search?q=MTK%E5%88%B7%E6%9C%BA",
             tags = listOf("mediatek", "mtk", "rom", "bootloader"),
-            deviceCodes = listOf("MT6989", "MT6985", "MT6878", "evergo", "fire", "lisa", "OP5955", "ossi", "taro"),
+            deviceCodes = listOf("MT6989", "MT6985", "MT6878", "evergo", "fire", "lisa"),
             description = "MT6989/85/78 等联发科平台 ROM 解锁与刷机"
-        ),
-        CoolapkSource(
-            title = "酷安 - LineageOS 中文社区合集",
-            author = "@LineageOS中文组",
-            url = "https://www.coolapk.com/feed/10000011",
-            tags = listOf("lineageos", "rom", "aosp"),
-            deviceCodes = listOf("sargo", "bonito", "crosshatch", "blueline", "flame", "coral", "alioth", "lemonade"),
-            description = "LineageOS 各设备官方/非官方编译镜像"
-        ),
-        CoolapkSource(
-            title = "酷安 - Pixel Experience / PixelOS 合集",
-            author = "@PE搬运组",
-            url = "https://www.coolapk.com/feed/10000012",
-            tags = listOf("pixelexperience", "pixelos", "pixel", "rom"),
-            deviceCodes = listOf("sargo", "bonito", "redfin", "barbet", "raven", "oriole", "alioth", "lemonade"),
-            description = "PE / PixelOS 各机型合集"
-        ),
-        CoolapkSource(
-            title = "酷安 - crDroid / Evolution X 中文合集",
-            author = "@crDroid中文站",
-            url = "https://www.coolapk.com/feed/10000013",
-            tags = listOf("crdroid", "evolution", "rom", "aosp"),
-            deviceCodes = listOf("alioth", "apollo", "lemonade", "kebab", "instantnoodle", "raven", "oriole"),
-            description = "crDroid / Evolution X 中文镜像"
-        ),
-        CoolapkSource(
-            title = "酷安 - TWRP / OrangeFox / SKik Recovery 大全",
-            author = "@Recovery搬运",
-            url = "https://www.coolapk.com/feed/10000014",
-            tags = listOf("recovery", "twrp", "orangefox", "skik", "bootloader"),
-            deviceCodes = listOf("sargo", "alioth", "lemonade", "bonito", "crosshatch", "raphael", "nabu", "psyche"),
-            description = "第三方 Recovery 全机型合集"
-        ),
-        CoolapkSource(
-            title = "酷安 - KernelSU / Magisk / APatch 内核大全",
-            author = "@内核搬运工",
-            url = "https://www.coolapk.com/feed/10000015",
-            tags = listOf("kernelsu", "magisk", "apatch", "kernel", "root"),
-            deviceCodes = listOf("sargo", "alioth", "lemonade", "raven", "oriole", "apollo", "nabu", "psyche"),
-            description = "Root 内核 (KernelSU/Magisk/APatch) 各机型 boot.img"
-        ),
-        CoolapkSource(
-            title = "酷安 - 国行解 Bootloader 大佬工具合集",
-            author = "@解锁工具组",
-            url = "https://www.coolapk.com/feed/10000016",
-            tags = listOf("bootloader", "unlock", "工具", "root"),
-            deviceCodes = listOf("MT6989", "SM-S9210", "PGT-AN00", "CMA-AN00", "ossi", "taro"),
-            description = "国行机型 BL 解锁工具/补丁大全 (高端玩家自制)"
         ),
         CoolapkSource(
             title = "大佬自建站 - ROMHUB 镜像站",
             author = "@ROMHUB",
             url = "https://romhub.org",
             tags = listOf("romhub", "镜像站", "rom"),
-            deviceCodes = listOf("sargo", "alioth", "lemonade", "raven", "nabu", "psyche", "aurora"),
-            description = "ROMHUB 大佬自建镜像站, 涵盖主流机型"
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "raven", "nabu", "psyche"),
+            description = "ROMHUB 大佬自建镜像站"
         ),
         CoolapkSource(
             title = "大佬自建站 - Needrom 镜像",
             author = "@Needrom",
             url = "https://www.needrom.com",
             tags = listOf("needrom", "镜像站", "rom", "firmware"),
-            deviceCodes = listOf("MT6989", "MT6985", "MT6878", "SM-S9210", "PD2", "PGT-AN00"),
-            description = "Needrom 国际 ROM 镜像站, 罕见机型覆盖率高"
+            deviceCodes = listOf("MT6989", "MT6985", "MT6878", "SM-S9210", "PD2"),
+            description = "Needrom 国际 ROM 镜像站"
         ),
         CoolapkSource(
             title = "大佬自建站 - OrangeFox Recovery 官方",
@@ -303,6 +327,174 @@ object FirmwareSearcher {
             tags = listOf("lineageos", "官网", "rom"),
             deviceCodes = listOf("sargo", "bonito", "redfin", "barbet", "raven", "oriole", "alioth"),
             description = "LineageOS 官方下载站"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - AndroidFileHost ROM 搬运站",
+            author = "@AFH搬运工",
+            url = "https://www.androidfilehost.com",
+            tags = listOf("androidfilehost", "rom", "firmware"),
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "raven", "nabu", "psyche", "aurora", "raphael"),
+            description = "AFH 官方镜像站, 海量 ROM 资源"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - SourceForge ROM 合集",
+            author = "@SF搬运组",
+            url = "https://sourceforge.net/directory/os:android/",
+            tags = listOf("sourceforge", "rom", "firmware"),
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "bonito", "raphael", "nabu"),
+            description = "SourceForge 上的 Android ROM 项目合集"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - XiaomiFirmwareUpdater",
+            author = "@XiaomiFirmware",
+            url = "https://xiaomifirmwareupdater.com",
+            tags = listOf("xiaomi", "miui", "firmware", "hyperos"),
+            deviceCodes = listOf("alioth", "raphael", "nabu", "psyche", "aurora", "ruby", "lmi", "sweet"),
+            description = "小米固件自动更新站, 全系列 MIUI/HyperOS"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - MIUI ROM 下载站",
+            author = "@MIUI下载站",
+            url = "https://www.miui.com/download.html",
+            tags = listOf("miui", "xiaomi", "rom", "官网"),
+            deviceCodes = listOf("alioth", "raphael", "nabu", "psyche", "aurora", "ruby", "lmi"),
+            description = "MIUI 官方 ROM 下载页"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - HyperOS 固件库",
+            author = "@HyperOS搬运",
+            url = "https://hyperos.mi.com/download",
+            tags = listOf("hyperos", "xiaomi", "rom", "官网"),
+            deviceCodes = listOf("nabu", "psyche", "aurora", "ruby", "marble", "garnet"),
+            description = "HyperOS 官方固件下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - PixelDust / ArrowOS 合集",
+            author = "@AOSP搬运组",
+            url = "https://sourceforge.net/projects/arrow-os/files/",
+            tags = listOf("arrowos", "pixeldust", "aosp", "rom"),
+            deviceCodes = listOf("sargo", "bonito", "redfin", "barbet", "raven", "oriole"),
+            description = "ArrowOS / PixelDust AOSP ROM 合集"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - Havoc OS / Bliss ROM 合集",
+            author = "@Havoc搬运",
+            url = "https://sourceforge.net/projects/havoc-os/files/",
+            tags = listOf("havoc", "bliss", "aosp", "rom"),
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "bonito", "crosshatch"),
+            description = "Havoc OS / Bliss ROM 高级定制 ROM"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - Samsung Odin 固件库",
+            author = "@三星固件库",
+            url = "https://samfw.com",
+            tags = listOf("samsung", "oneui", "odin", "firmware"),
+            deviceCodes = listOf("SM-S9210", "SM-S926", "SM-S928", "SM-S936", "SM-A515", "SM-A725"),
+            description = "三星全机型 Odin 固件下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - SamMobile 固件",
+            author = "@SamMobile",
+            url = "https://www.sammobile.com",
+            tags = listOf("samsung", "oneui", "firmware"),
+            deviceCodes = listOf("SM-S9210", "SM-S926", "SM-S928", "SM-S23", "SM-A515"),
+            description = "SamMobile 三星固件下载站"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - Firmware.mobi 国际固件",
+            author = "@FirmwareMobi",
+            url = "https://firmware.mobi",
+            tags = listOf("firmware", "rom", "international"),
+            deviceCodes = listOf("SM-S9210", "ossi", "taro", "MT6989", "PGT-AN00"),
+            description = "国际固件镜像站, 覆盖多国版本"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - OPPO 官方固件",
+            author = "@OPPO官方",
+            url = "https://www.oppo.com/cn/support/softwareupdate/",
+            tags = listOf("oppo", "coloros", "firmware", "官网"),
+            deviceCodes = listOf("ossi", "taro", "aston", "davinci", "PD2", "PGW110"),
+            description = "OPPO 官方固件下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - vivo 官方固件",
+            author = "@vivo官方",
+            url = "https://www.vivo.com.cn/download/",
+            tags = listOf("vivo", "originos", "firmware", "官网"),
+            deviceCodes = listOf("PD2", "PD3", "V22", "V21", "X90", "V2324A"),
+            description = "vivo 官方固件下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - Realme 官方固件",
+            author = "@Realme官方",
+            url = "https://www.realme.com/cn/support/software-update/",
+            tags = listOf("realme", "realmeui", "firmware", "官网"),
+            deviceCodes = listOf("RMX3081", "RMX3360", "RMX3461", "RE54C1"),
+            description = "Realme 官方固件下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - Honor 官方固件",
+            author = "@荣耀官方",
+            url = "https://www.honor.cn/support/download/",
+            tags = listOf("honor", "magicos", "firmware", "官网"),
+            deviceCodes = listOf("CMA-AN00", "PGT-AN00", "ANY-AN00", "GT-AN00"),
+            description = "荣耀官方固件下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - OnePlus 官方固件",
+            author = "@一加官方",
+            url = "https://www.oneplus.com/support/softwareupgrade",
+            tags = listOf("oneplus", "oxygenos", "firmware", "官网"),
+            deviceCodes = listOf("lemonade", "lemonadep", "kebab", "instantnoodle", "OP5955"),
+            description = "一加官方 OxygenOS 下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - PE 官方下载",
+            author = "@PixelExperience",
+            url = "https://download.pixelexperience.org",
+            tags = listOf("pixelexperience", "rom", "官网"),
+            deviceCodes = listOf("sargo", "bonito", "redfin", "barbet", "raven", "oriole", "alioth"),
+            description = "Pixel Experience 官方下载"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - crDroid 官方下载",
+            author = "@crDroid",
+            url = "https://crdroid.net/download",
+            tags = listOf("crdroid", "rom", "官网"),
+            deviceCodes = listOf("alioth", "lemonade", "kebab", "raven", "oriole"),
+            description = "crDroid 官方下载站"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - Evolution X 官方下载",
+            author = "@EvolutionX",
+            url = "https://evolutionx.org/download",
+            tags = listOf("evolutionx", "rom", "官网"),
+            deviceCodes = listOf("alioth", "lemonade", "kebab", "raven", "oriole"),
+            description = "Evolution X 官方下载站"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - KernelSU 官方",
+            author = "@KernelSU",
+            url = "https://kernelsu.org",
+            tags = listOf("kernelsu", "kernel", "root", "官网"),
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "raven", "nabu", "psyche"),
+            description = "KernelSU 官方下载与文档"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - Magisk 官方",
+            author = "@topjohnwu",
+            url = "https://github.com/topjohnwu/Magisk/releases",
+            tags = listOf("magisk", "root", "kernel", "官网"),
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "raven", "nabu", "psyche"),
+            description = "Magisk 官方 release"
+        ),
+        CoolapkSource(
+            title = "酷安大佬 - APatch 官方",
+            author = "@APatch",
+            url = "https://github.com/bmax121/APatch/releases",
+            tags = listOf("apatch", "root", "kernel", "官网"),
+            deviceCodes = listOf("sargo", "alioth", "lemonade", "raven", "nabu"),
+            description = "APatch 官方 release"
         )
     )
 

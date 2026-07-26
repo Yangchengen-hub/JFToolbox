@@ -46,7 +46,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.JFToolbox"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- 启动入口: Compose 版免责声明 -->
         <activity
@@ -82,6 +83,14 @@
             android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.terminal.TerminalComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.wireless.WirelessDebugComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity
+            android:name=".ui.wireless.PairingOverlayActivity"
+            android:exported="false"
+            android:theme="@style/Theme.JFToolbox"
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:noHistory="true"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.screenmirror.ScreenMirrorComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.downloader.DownloaderComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.firmware.FirmwareComposeActivity" android:theme="@style/Theme.JFToolbox" />

@@ -25,7 +25,8 @@ object FileCrypto {
     private const val MAGIC = "JFC1"
     private const val IV_LEN = 16
     private const val KEY_LEN = 32
-    private const val ITERATIONS = 10000
+    private const val SALT_LEN = 16
+    private const val ITERATIONS = 65536
     private const val CHUNK = 8 * 1024
     private const val ALGO = "AES/CBC/PKCS5Padding"
 
@@ -36,7 +37,7 @@ object FileCrypto {
         val durationMs: Long
     )
 
-    /** AES-256-CBC 文件加密, 输出格式 = MAGIC(4B) || IV(16B) || ciphertext。 */
+    /** AES-256-CBC 文件加密, 输出格式 = MAGIC(4B) || SALT(16B) || IV(16B) || ciphertext。 */
     fun encryptFile(
         input: File,
         output: File,
@@ -45,13 +46,15 @@ object FileCrypto {
     ): CryptoResult {
         val start = System.currentTimeMillis()
         return try {
+            val salt = ByteArray(SALT_LEN).also { SecureRandom().nextBytes(it) }
             val iv = ByteArray(IV_LEN).also { SecureRandom().nextBytes(it) }
-            val key = deriveKey(password, iv)
+            val key = deriveKey(password, salt)
             val cipher = Cipher.getInstance(ALGO).apply {
                 init(Cipher.ENCRYPT_MODE, key, IvParameterSpec(iv))
             }
             FileOutputStream(output).use { out ->
                 out.write(MAGIC.toByteArray(Charsets.US_ASCII))
+                out.write(salt)
                 out.write(iv)
                 FileInputStream(input).use { inn ->
                     val total = input.length()
@@ -90,16 +93,20 @@ object FileCrypto {
                 if (inn.read(magic) != 4 || String(magic, Charsets.US_ASCII) != MAGIC) {
                     return CryptoResult(false, null, "非 JFC1 加密文件", System.currentTimeMillis() - start)
                 }
+                val salt = ByteArray(SALT_LEN)
+                if (inn.read(salt) != SALT_LEN) {
+                    return CryptoResult(false, null, "文件头损坏", System.currentTimeMillis() - start)
+                }
                 val iv = ByteArray(IV_LEN)
                 if (inn.read(iv) != IV_LEN) {
                     return CryptoResult(false, null, "文件头损坏", System.currentTimeMillis() - start)
                 }
-                val key = deriveKey(password, iv)
+                val key = deriveKey(password, salt)
                 val cipher = Cipher.getInstance(ALGO).apply {
                     init(Cipher.DECRYPT_MODE, key, IvParameterSpec(iv))
                 }
                 FileOutputStream(output).use { out ->
-                    val total = input.length() - 4 - IV_LEN
+                    val total = input.length() - 4 - SALT_LEN - IV_LEN
                     var read = 0L
                     val buf = ByteArray(CHUNK)
                     while (true) {

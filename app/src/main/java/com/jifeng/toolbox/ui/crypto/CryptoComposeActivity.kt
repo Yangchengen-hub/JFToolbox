@@ -55,9 +55,12 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 class CryptoComposeActivity : ComponentActivity() {
@@ -354,16 +357,40 @@ private fun base64Encode(s: String): String =
 private fun base64Decode(s: String): String =
     try { String(Base64.getDecoder().decode(s)) } catch (e: Exception) { "解码失败: ${e.message}" }
 
-private fun aesEncrypt(s: String, k: String): String = try {
-    val key = SecretKeySpec(k.toByteArray().copyOf(32), "AES")
-    val iv = IvParameterSpec(ByteArray(16) { 0 })
-    val c = Cipher.getInstance("AES/CBC/PKCS5Padding").apply { init(Cipher.ENCRYPT_MODE, key, iv) }
-    Base64.getEncoder().encodeToString(c.doFinal(s.toByteArray()))
-} catch (e: Exception) { "加密失败: ${e.message}" }
+private fun aesEncrypt(s: String, k: String): String {
+    return try {
+        if (k.isBlank()) return "密钥不能为空"
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val iv = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val key = deriveKey(k, salt)
+        val c = Cipher.getInstance("AES/CBC/PKCS5Padding").apply { init(Cipher.ENCRYPT_MODE, key, IvParameterSpec(iv)) }
+        val ciphertext = c.doFinal(s.toByteArray())
+        val result = ByteArray(salt.size + iv.size + ciphertext.size).apply {
+            System.arraycopy(salt, 0, this, 0, salt.size)
+            System.arraycopy(iv, 0, this, salt.size, iv.size)
+            System.arraycopy(ciphertext, 0, this, salt.size + iv.size, ciphertext.size)
+        }
+        Base64.getEncoder().encodeToString(result)
+    } catch (e: Exception) { "加密失败: ${e.message}" }
+}
 
-private fun aesDecrypt(s: String, k: String): String = try {
-    val key = SecretKeySpec(k.toByteArray().copyOf(32), "AES")
-    val iv = IvParameterSpec(ByteArray(16) { 0 })
-    val c = Cipher.getInstance("AES/CBC/PKCS5Padding").apply { init(Cipher.DECRYPT_MODE, key, iv) }
-    String(c.doFinal(Base64.getDecoder().decode(s)))
-} catch (e: Exception) { "解密失败: ${e.message}" }
+private fun aesDecrypt(s: String, k: String): String {
+    return try {
+        if (k.isBlank()) return "密钥不能为空"
+        val raw = Base64.getDecoder().decode(s)
+        if (raw.size < 32) return "数据过短"
+        val salt = raw.copyOf(16)
+        val iv = raw.copyOfRange(16, 32)
+        val ciphertext = raw.copyOfRange(32, raw.size)
+        val key = deriveKey(k, salt)
+        val c = Cipher.getInstance("AES/CBC/PKCS5Padding").apply { init(Cipher.DECRYPT_MODE, key, IvParameterSpec(iv)) }
+        String(c.doFinal(ciphertext))
+    } catch (e: Exception) { "解密失败: ${e.message}" }
+}
+
+private fun deriveKey(password: String, salt: ByteArray): SecretKeySpec {
+    val spec = PBEKeySpec(password.toCharArray(), salt, 65536, 256)
+    val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+    val keyBytes = factory.generateSecret(spec).encoded
+    return SecretKeySpec(keyBytes, "AES")
+}

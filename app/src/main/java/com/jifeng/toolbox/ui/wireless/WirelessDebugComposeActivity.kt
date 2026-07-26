@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -194,13 +195,16 @@ private fun WirelessDebugScreen() {
                         enabled = !isPairing && pairIp.isNotBlank() && pairPort.isNotBlank() && pairCode.length == 6,
                         modifier = Modifier.fillMaxWidth().height(46.dp)
                     ) {
-                        if (isPairing) {
-                            CircularProgressIndicator(modifier = Modifier.height(18.dp),
-                                strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                        } else {
-                            Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.height(18.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (isPairing) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                            } else {
+                                Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                            Text("配对")
                         }
-                        Text(" 配对")
                     }
                 }
             }
@@ -291,10 +295,7 @@ private fun WirelessDebugScreen() {
                                     val started = withContext(Dispatchers.IO) { ShellHub.start(serial) }
                                     logs.add(if (started) "✓ Shell 中枢已启动 (监听 127.0.0.1:8848)"
                                               else "✗ daemon 启动超时, oneshot 仍可用")
-                                    // 同时启动前台服务, 提供通知栏配对入口
-                                    ctx.startForegroundService(
-                                        Intent(ctx, ShellHubService::class.java)
-                                    )
+                                    ctx.startForegroundService(Intent(ctx, ShellHubService::class.java))
                                     logs.add("✓ 通知栏配对入口已挂载")
                                     isBusy = false
                                 }
@@ -302,8 +303,16 @@ private fun WirelessDebugScreen() {
                             enabled = !isBusy && AdbManager.isConnected && !shellHubRunning,
                             modifier = Modifier.weight(1f).height(46.dp)
                         ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.height(18.dp))
-                            Text(" 启动中枢")
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isBusy) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                                Text(if (isBusy) "启动中..." else "启动中枢")
+                            }
                         }
                         OutlinedButton(
                             onClick = {
@@ -319,8 +328,16 @@ private fun WirelessDebugScreen() {
                             enabled = !isBusy && shellHubRunning,
                             modifier = Modifier.weight(1f).height(46.dp)
                         ) {
-                            Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.height(18.dp))
-                            Text(" 停止中枢")
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isBusy) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onSurface)
+                                } else {
+                                    Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                                Text(if (isBusy) "停止中..." else "停止中枢")
+                            }
                         }
                     }
 
@@ -431,12 +448,19 @@ private fun WirelessDebugScreen() {
                                     isBusy = false
                                 }
                             },
-                            enabled = !isBusy && ip.isNotBlank()
+                            enabled = !isBusy && ip.isNotBlank(),
+                            modifier = Modifier.height(46.dp)
                         ) {
-                            if (isBusy) CircularProgressIndicator(modifier = Modifier.height(16.dp),
-                                strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                            else Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.height(16.dp))
-                            Text(" 连接")
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isBusy) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                                Text("连接")
+                            }
                         }
                         OutlinedButton(onClick = {
                             scope.launch {
@@ -491,10 +515,19 @@ private fun WirelessDebugScreen() {
                                     isBusy = false
                                 }
                             },
-                            enabled = !isBusy && AdbManager.isConnected
+                            enabled = !isBusy && AdbManager.isConnected,
+                            modifier = Modifier.height(46.dp)
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.height(18.dp))
-                            Text(" 检索冻结列表")
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isBusy) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                                Text(if (isBusy) "检索中..." else "检索冻结列表")
+                            }
                         }
                         OutlinedButton(
                             onClick = {
@@ -509,10 +542,19 @@ private fun WirelessDebugScreen() {
                                     isBusy = false
                                 }
                             },
-                            enabled = !isBusy
+                            enabled = !isBusy,
+                            modifier = Modifier.height(46.dp)
                         ) {
-                            Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.height(18.dp))
-                            Text(" 刷新在线清单")
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isBusy) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onSurface)
+                                } else {
+                                    Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                                Text(if (isBusy) "刷新中..." else "刷新在线清单")
+                            }
                         }
                     }
 
@@ -533,10 +575,19 @@ private fun WirelessDebugScreen() {
                                     isBusy = false
                                 }
                             },
-                            enabled = !isBusy && selected.isNotEmpty()
+                            enabled = !isBusy && selected.isNotEmpty(),
+                            modifier = Modifier.height(46.dp)
                         ) {
-                            Icon(Icons.Default.AcUnit, contentDescription = null, modifier = Modifier.height(18.dp))
-                            Text(" 冻结选中 (${selected.size})")
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isBusy) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    Icon(Icons.Default.AcUnit, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                                Text(if (isBusy) "冻结中..." else "冻结选中 (${selected.size})")
+                            }
                         }
                         OutlinedButton(
                             onClick = {
@@ -553,10 +604,19 @@ private fun WirelessDebugScreen() {
                                     isBusy = false
                                 }
                             },
-                            enabled = !isBusy && selected.isNotEmpty()
+                            enabled = !isBusy && selected.isNotEmpty(),
+                            modifier = Modifier.height(46.dp)
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.height(18.dp))
-                            Text(" 解冻选中")
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isBusy) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onSurface)
+                                } else {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
+                                Text(if (isBusy) "解冻中..." else "解冻选中")
+                            }
                         }
                     }
 

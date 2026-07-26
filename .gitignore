@@ -4,3 +4,6 @@ build/
 local.properties
 *.iml
 .idea/
+*.keystore
+init.gradle
+release_notes_*.md

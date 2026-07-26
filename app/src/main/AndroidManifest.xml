@@ -24,7 +24,11 @@
     <!-- Foreground service for ADB daemon -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 悬浮窗 (ShellHub 授权 UI 覆盖在其他 APP 之上) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Install packages (APK 安装器) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -90,6 +94,25 @@
         <activity android:name=".ui.browser.BrowserComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.about.AboutComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.permission.PermissionComposeActivity" android:exported="false" android:theme="@style/Theme.JFToolbox" />
+
+        <!-- ShellHub 悬浮窗授权 Activity (第三方请求 shell 权限时弹起) -->
+        <activity
+            android:name=".ui.tools.ShellHubAuthActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.JFToolbox" />
+
+        <!-- ShellHub 前台服务 (维持 daemon 中继 + 通知栏配对入口) -->
+        <service
+            android:name=".tools.ShellHubService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="ShellHub daemon relay + third-party ADB authorization" />
+        </service>
 
         <!-- 旧 View 体系 Activity 保留但不再启动 (兼容期) -->
         <activity android:name=".ui.main.MainActivity" android:exported="false" />

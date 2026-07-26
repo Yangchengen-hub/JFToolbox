@@ -1,7 +1,12 @@
 package com.jifeng.toolbox.ui.crypto
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -9,10 +14,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.IosShare
+import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -26,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -39,6 +53,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.Base64
 import javax.crypto.Cipher
@@ -80,6 +95,7 @@ private fun CryptoScreen() {
 
 @Composable
 private fun TextCryptoTab() {
+    val ctx = LocalContext.current
     var input by remember { mutableStateOf("") }
     var key by remember { mutableStateOf("") }
     var output by remember { mutableStateOf("") }
@@ -105,9 +121,43 @@ private fun TextCryptoTab() {
         }
     }
     LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
-        Text(output.ifBlank { "(输出)" },
-            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurface)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("输出",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f))
+                if (output.isNotBlank()) {
+                    // 复制到剪贴板
+                    IconButton(onClick = {
+                        val clip = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clip.setPrimaryClip(ClipData.newPlainText("JF Crypto", output))
+                        Toast.makeText(ctx, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "复制",
+                            tint = MaterialTheme.colorScheme.primary)
+                    }
+                    // 系统分享
+                    IconButton(onClick = {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, output)
+                            putExtra(Intent.EXTRA_TITLE, "JFToolbox 加密结果")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        ctx.startActivity(Intent.createChooser(send, "分享加密结果"))
+                    }) {
+                        Icon(Icons.Default.IosShare, contentDescription = "分享",
+                            tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+            Text(output.ifBlank { "(输出)" },
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurface)
+        }
     }
 }
 
@@ -214,10 +264,70 @@ private fun FileCryptoTab() {
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurface)
             }
-            outputPath?.let {
-                Text("输出文件: $it",
+            outputPath?.let { path ->
+                Text("输出文件: $path",
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    // 系统分享 (与其他 APP 联动)
+                    OutlinedButton(onClick = {
+                        val file = File(path)
+                        if (!file.exists()) {
+                            Toast.makeText(ctx, "文件不存在", Toast.LENGTH_SHORT).show()
+                            return@OutlinedButton
+                        }
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            ctx, "${ctx.packageName}.fileprovider", file
+                        )
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/octet-stream"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        ctx.startActivity(Intent.createChooser(send, "分享 ${file.name}"))
+                    }) {
+                        Icon(Icons.Default.IosShare, contentDescription = null,
+                            modifier = Modifier.height(16.dp))
+                        Spacer(Modifier.height(0.dp))
+                        Text(" 分享")
+                    }
+                    // 保存到下载目录
+                    OutlinedButton(onClick = {
+                        val src = File(path)
+                        if (!src.exists()) {
+                            Toast.makeText(ctx, "源文件不存在", Toast.LENGTH_SHORT).show()
+                            return@OutlinedButton
+                        }
+                        scope.launch {
+                            val ok = withContext(Dispatchers.IO) {
+                                try {
+                                    val downloads = android.os.Environment
+                                        .getExternalStoragePublicDirectory(
+                                            android.os.Environment.DIRECTORY_DOWNLOADS
+                                        )
+                                    val dst = File(downloads, src.name)
+                                    src.inputStream().use { input ->
+                                        FileOutputStream(dst).use { input.copyTo(it) }
+                                    }
+                                    true
+                                } catch (e: Exception) {
+                                    Toast.makeText(ctx, "保存失败: ${e.message}",
+                                        Toast.LENGTH_SHORT).show()
+                                    false
+                                }
+                            }
+                            if (ok) Toast.makeText(ctx, "已保存到 Download/${src.name}",
+                                Toast.LENGTH_LONG).show()
+                        }
+                    }) {
+                        Icon(Icons.Default.SaveAs, contentDescription = null,
+                            modifier = Modifier.height(16.dp))
+                        Spacer(Modifier.height(0.dp))
+                        Text(" 保存到 Download")
+                    }
+                }
             }
             Text("本工具采用 AES-256-CBC 标准算法, 不存在 100% 解密任意加密的能力, 也不存在加密后绝对不可破解的方案。",
                 style = MaterialTheme.typography.bodySmall,

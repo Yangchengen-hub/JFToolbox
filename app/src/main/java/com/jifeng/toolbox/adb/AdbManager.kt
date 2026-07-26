@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.usb.UsbDevice
 import com.jifeng.toolbox.adb.protocol.AdbConnection
 import com.jifeng.toolbox.adb.protocol.AdbKeyManager
+import com.jifeng.toolbox.adb.protocol.AdbPair
 import com.jifeng.toolbox.adb.protocol.AdbSync
 import com.jifeng.toolbox.adb.protocol.AdbTransport
 import com.jifeng.toolbox.adb.protocol.TcpAdbTransport
@@ -82,6 +83,25 @@ object AdbManager {
         currentSerial = readSerial()
         Logger.i(TAG, "已连接(无线) $host:$port serial=$currentSerial")
         return true
+    }
+
+    /**
+     * Android 11+ 无线调试配对 (SPAKE2-EE 简化版 X25519+HKDF+AES-GCM)。
+     *
+     * 流程:
+     * 1. 用户在被控端 开启无线调试 → "与设备配对" → 获得 6 位配对码 + 配对端口
+     * 2. 调用 [pair] 完成 SPAKE2 配对 → 服务端会保存本端公钥 (无线调试 active 端口自动授权)
+     * 3. 之后即可 [connectTcp] 到 active 端口 (无需再次授权)
+     *
+     * @param host 被控端 IP
+     * @param pairPort 配对端口 (无线调试 → "与设备配对" 显示的端口, 通常 5 位数随机)
+     * @param pairingCode 6 位数字配对码
+     * @return 配对结果消息
+     */
+    fun pair(host: String, pairPort: Int, pairingCode: String): Pair<Boolean, String> {
+        val p = AdbPair(host, pairPort, pairingCode)
+        val r = p.pair()
+        return Pair(r.success, r.message)
     }
 
     private fun readSerial(): String? =

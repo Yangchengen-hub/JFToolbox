@@ -76,12 +76,13 @@ import java.util.Locale
 class BrowserComposeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { BrowserScreen() }
+        val initialUrl = intent?.getStringExtra("initial_url")
+        setContent { BrowserScreen(initialUrl = initialUrl) }
     }
 }
 
 @Composable
-private fun BrowserScreen() {
+private fun BrowserScreen(initialUrl: String? = null) {
     // 0=网页浏览, 1=文件查看器, 2=代码编辑器
     var mode by remember { mutableStateOf(0) }
     val tabs = listOf("网页浏览", "文件查看器", "代码编辑器")
@@ -110,7 +111,7 @@ private fun BrowserScreen() {
             // 用 weighted Box 撑满剩余高度, 使各 Tab 内部的 weight(1f) 卡片可正确填充
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 when (mode) {
-                    0 -> WebBrowseTab()
+                    0 -> WebBrowseTab(initialUrl = initialUrl)
                     1 -> FileViewerTab()
                     2 -> CodeEditorTab()
                 }
@@ -122,11 +123,18 @@ private fun BrowserScreen() {
 // ========================= 网页浏览 =========================
 
 @Composable
-private fun WebBrowseTab() {
-    var url by remember { mutableStateOf("https://www.baidu.com") }
+private fun WebBrowseTab(initialUrl: String? = null) {
+    var url by remember { mutableStateOf(initialUrl ?: "https://www.baidu.com") }
     var loadTrigger by remember { mutableStateOf(0) }
     val ctx = LocalContext.current
     val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
+    // 如果从外部传入了 initial_url, 首次进入立即触发一次加载
+    LaunchedEffect(initialUrl) {
+        if (!initialUrl.isNullOrBlank() && loadTrigger == 0) {
+            loadTrigger++
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 12.dp) {
@@ -151,12 +159,17 @@ private fun WebBrowseTab() {
                     WebView(ctx).apply {
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
+                        settings.allowFileAccess = true
+                        settings.allowContentAccess = true
                         webViewClient = WebViewClient()
                         webChromeClient = WebChromeClient()
                         loadUrl(url)
                     }
                 },
-                update = { it.loadUrl(url) },
+                update = { web ->
+                    // 仅在 loadTrigger 变化时显式加载, 避免 url 输入过程中频繁重载
+                    if (loadTrigger > 0) web.loadUrl(url)
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }

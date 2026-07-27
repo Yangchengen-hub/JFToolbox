@@ -47,11 +47,27 @@ JFToolbox is an all-in-one toolkit designed for Android enthusiasts, flashaholic
 
 ## 📦 下载安装 | Download & Install
 
+### 🚀 最新版本 | Latest Version
+
+<p align="center">
+  <a href="https://github.com/Yangchengen-hub/JFToolbox/releases/latest/download/JFToolbox-v2.3.0.apk" target="_blank">
+    <img src="https://img.shields.io/badge/下载%20APK%20v2.3.0-%231A73E8.svg?style=for-the-badge&logo=android&logoColor=white" alt="下载 APK" />
+  </a>
+  <a href="https://github.com/Yangchengen-hub/JFToolbox/releases" target="_blank">
+    <img src="https://img.shields.io/github/v/release/Yangchengen-hub/JFToolbox?include_prereleases&style=for-the-badge" alt="Release" />
+  </a>
+  <a href="https://github.com/Yangchengen-hub/JFToolbox/actions" target="_blank">
+    <img src="https://img.shields.io/github/actions/workflow/status/Yangchengen-hub/JFToolbox/build-apk.yml?branch=main&style=for-the-badge" alt="Build Status" />
+  </a>
+</p>
+
 ### 方式一：直接下载 APK | Option 1: Direct APK Download
 
-前往 [Releases 页面](https://github.com/Yangchengen-hub/JFToolbox/releases) 下载最新版本 APK。
+**最新版下载（推荐）：**
+- [📥 JFToolbox-v2.3.0.apk](https://github.com/Yangchengen-hub/JFToolbox/releases/latest/download/JFToolbox-v2.3.0.apk)
 
-Go to the [Releases page](https://github.com/Yangchengen-hub/JFToolbox/releases) to download the latest APK.
+**所有历史版本：**
+- [📋 Releases 页面](https://github.com/Yangchengen-hub/JFToolbox/releases)
 
 ### 方式二：自行编译 | Option 2: Build from Source
 
@@ -62,7 +78,7 @@ cd JFToolbox
 
 # 需要 JDK 17 + Android SDK (API 34)
 # Requires JDK 17 + Android SDK (API 34)
-gradle assembleDebug
+./gradlew assembleDebug
 
 # APK 输出路径 | APK output path
 # app/build/outputs/apk/debug/app-debug.apk
@@ -81,6 +97,16 @@ gradle assembleDebug
 2. Enable "Install from unknown sources"
 3. Open the app and grant required permissions (Storage, Notifications, USB)
 4. Connect your phone using a USB-OTG cable to get started
+
+### 📊 版本信息 | Version Info
+
+| 项目 | 详情 | Item | Details |
+|------|------|------|---------|
+| 当前版本 | v2.3.0 | Current Version | v2.3.0 |
+| 版本号 | 6 | Version Code | 6 |
+| 支持架构 | arm64-v8a / armeabi-v7a / x86_64 | Architectures | arm64-v8a / armeabi-v7a / x86_64 |
+| 最小系统 | Android 7.0 (API 24) | Min SDK | Android 7.0 (API 24) |
+| 目标系统 | Android 14 (API 34) | Target SDK | Android 14 (API 34) |
 
 ---
 
@@ -228,11 +254,11 @@ of this software and associated documentation files...
 
 ## 📌 版本信息 | Version Info
 
-**当前版本 | Current Version:** `1.0.0`
+**当前版本 | Current Version:** `2.3.0`
 
 **更新日志 | Changelog:**
 
-- v1.0.0 — 首个正式版本 | Initial stable release
+- v2.3.0 — 正式发布 | Official Release
   - ✅ 25+ 功能模块全部就绪 | All 25+ feature modules ready
   - ✅ 液态玻璃 UI + HyperOS 动画 | Liquid Glass UI + HyperOS animations
   - ✅ 免 Root OTG 直连 | No-Root OTG direct connection

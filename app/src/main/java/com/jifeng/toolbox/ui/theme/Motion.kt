@@ -1,44 +1,53 @@
 package com.jifeng.toolbox.ui.theme
 
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 /**
- * HyperOS 动画规范。
- * 核心: 强调 "弹性+阻尼" 的物理感, 强调 "超快入场+慢出退场"。
- * 参考 MIUI/HyperOS 动效团队公开曲线文档。
- */
-object HyperOSEasing {
-    // 标准 ease (sharp 入场)
-    val Standard = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
-    // 强调 ease (有冲击感)
-    val Emphasized = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
-    // 减速 (慢出)
-    val Decelerated = CubicBezierEasing(0.0f, 0.0f, 0.0f, 1.0f)
-    // 加速 (快出)
-    val Accelerated = CubicBezierEasing(0.3f, 0.0f, 1.0f, 1.0f)
-}
-
-/**
- * HyperOS 时长规范 (单位 ms)。
- */
-object HyperOSDuration {
-    const val Instant = 100     // 微交互 (按钮反馈)
-    const val Quick = 200       // 状态切换
-    const val Normal = 300      // 标准过渡
-    const val Slow = 450        // 页面切换
-    const val Slowest = 600     // 大型动画
-}
-
-/**
- * 预设动画规格。
+ * HyperOS 风格运动曲线 v2 — 优化过渡动画质感。
+ *
+ * v2 改进:
+ *  - 新增 cardPressSpring: 按压回弹使用更柔和的 spring 参数
+ *  - 新增 cardReleaseSpring: 释放时更快回弹 (stiffness 更高)
+ *  - 统一 duration 规范到 4 级: 150ms / 300ms / 450ms / 600ms
+ *  - 新增 enterExitEasing 用于页面转场
  */
 object HyperOSMotion {
-    /** 卡片按压回弹 (spring)。 */
-    val cardPressSpring = spring<Float>(dampingRatio = 0.6f, stiffness = 400f)
-    /** 页面转场 (fade + slide)。 */
-    fun <T> pageTransition() = tween<T>(HyperOSDuration.Slow, easing = HyperOSEasing.Emphasized)
-    /** 列表项入场。 */
-    fun <T> listItemEnter(delay: Int = 0) = tween<T>(HyperOSDuration.Normal, delay, HyperOSEasing.Standard)
+    // 缓动曲线 — HyperOS 风格
+    val emphasizedEasing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+    val standardEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+    val decelerateEasing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
+    val enterExitEasing = CubicBezierEasing(0.35f, 0.0f, 0.0f, 1.0f)
+
+    // 时长规范 — 4 级
+    const val durationInstant = 100      // 微交互 (涟漪)
+    const val durationShort = 150        // 短过渡 (按压)
+    const val durationMedium = 300       // 中等过渡 (卡片悬停)
+    const val durationLong = 450         // 长过渡 (页面转场)
+    const val durationExtraLong = 600    // 超长过渡 (Hero 入场)
+
+    // 按压弹簧 — 柔和回弹
+    val cardPressSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
+    // 释放弹簧 — 快速回弹
+    val cardReleaseSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioLowBouncy,
+        stiffness = Spring.StiffnessMediumLow
+    )
+
+    // 通用弹簧 — 用于缩放/位移
+    val defaultSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
 }

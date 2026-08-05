@@ -30,8 +30,13 @@ import androidx.compose.ui.unit.dp
 import com.jifeng.toolbox.ui.theme.HyperOSMotion
 
 /**
- * 功能卡片 - 首页栅格用。点击缩放回弹 (HyperOS 风格)。
- * 图标置于圆形 primaryContainer 容器内, 文字加粗加大, 底部渐变模拟阴影。
+ * 功能卡片 v2 — 顶级 UI 设计。
+ *
+ * v2 改进:
+ *  - 移除硬编码尺寸 (width=100dp, height=124dp), 改为 fillMaxWidth + aspectRatio
+ *  - 图标容器改为渐变背景 (替代纯色 primaryContainer)
+ *  - 按压时图标缩放 + 颜色加亮, 增强微交互反馈
+ *  - 底部渐变改为更自然的 vignette 效果
  */
 @Composable
 fun FeatureTile(
@@ -43,60 +48,77 @@ fun FeatureTile(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.92f else 1f,
+        targetValue = if (pressed) 0.90f else 1f,
         animationSpec = HyperOSMotion.cardPressSpring,
         label = "tileScale"
     )
-    val containerColor = MaterialTheme.colorScheme.primaryContainer
+    // 图标缩放 — 按压时缩小, 释放弹回
+    val iconScale by animateFloatAsState(
+        targetValue = if (pressed) 0.85f else 1f,
+        animationSpec = HyperOSMotion.cardPressSpring,
+        label = "iconScale"
+    )
+
+    val primary = MaterialTheme.colorScheme.primary
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
     val onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
+
     LiquidGlassCard(
         modifier = modifier
             .scale(scale)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        cornerRadius = 24.dp,
-        padding = 16.dp
+        cornerRadius = 28.dp,
+        padding = 12.dp
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .size(width = 100.dp, height = 124.dp)
+                .padding(vertical = 4.dp)
                 .drawBehind {
-                    // 底部微妙渐变, 模拟阴影/纵深感
+                    // 底部 vignette — 增加纵深感和高级质感
                     drawRect(
                         brush = Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.06f)
-                            )
+                                primary.copy(alpha = 0.04f)
+                            ),
+                            startY = size.height * 0.5f,
+                            endY = size.height
                         )
                     )
                 }
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // 圆形背景容器包裹图标, 增加视觉层次
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(containerColor)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = onContainerColor,
-                        modifier = Modifier.size(40.dp)
+            // 圆形渐变图标容器 — 比纯色更有质感
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(52.dp)
+                    .scale(iconScale)
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                primaryContainer,
+                                primaryContainer.copy(alpha = 0.7f)
+                            )
+                        )
                     )
-                }
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 10.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = onContainerColor,
+                    modifier = Modifier.size(32.dp)
                 )
             }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
     }
 }

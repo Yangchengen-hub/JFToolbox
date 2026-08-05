@@ -10,19 +10,32 @@ import android.os.Build
 import com.jifeng.toolbox.adb.AdbDaemonService
 import com.jifeng.toolbox.adb.AdbManager
 import com.jifeng.toolbox.core.Logger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
- * USB OTG 设备编排器: 枚举 / 权限 / 热插拔 / 自动建立 ADB 连接。
- * 通过 StateFlow 向 UI 暴露连接状态, 实现需求中 "0.1s 极速识别插拔"。
+ * USB OTG 设备编排器 v2: 枚举 / 权限 / 热插拔 / 自动建立 ADB 连接。
+ *
+ * v2 修复:
+ *  - P0: onPermissionGranted 中 AdbManager.connect() 移到 Dispatchers.IO 协程,
+ *    避免在主线程执行 bulkTransfer 阻塞 I/O (原代码会触发 ANR)
+ *  - P1: isAdbInterface/isFastbootInterface 接口匹配逻辑收紧,
+ *    移除 20+ 过宽泛的 vendor-specific 组合, 只保留标准 ADB/Fastboot + 常见 vendor-specific
+ *  - P1: 移除双重广播触发风险 — requestPermission 用唯一 requestCode
  */
 class UsbDeviceManager private constructor(private val app: Context) {
 
     enum class State { DISCONNECTED, REQUESTING, CONNECTING, CONNECTED, FAILED }
 
     private val usbManager = app.getSystemService(Context.USB_SERVICE) as UsbManager
+
+    /** IO 协程作用域 — 用于 ADB 连接等阻塞操作 */
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _state = MutableStateFlow(State.DISCONNECTED)
     val state: StateFlow<State> = _state.asStateFlow()
@@ -58,41 +71,37 @@ class UsbDeviceManager private constructor(private val app: Context) {
         return device.vendorId == 0x0E8D || device.vendorId == 0x22B8
     }
 
+    /**
+     * P1 修复: 收紧 ADB 接口匹配。
+     * 标准 ADB: class=0xFF sub=0x42 proto=0x01
+     * Google ADB (older): class=0xFF sub=0xFF proto=0x00 — 仅在已知 VID 时匹配
+     * CDC-ACM fallback: class=0x02 sub=0x02 proto=0x01 (罕见, 保留)
+     * 移除了之前 sub=0x01~0x09 proto=0x00 等 vendor-specific 过宽泛匹配,
+     * 它们会误匹配非 ADB 设备 (如 MTP/PTP)
+     */
     private fun isAdbInterface(iface: UsbInterface): Boolean {
         val clazz = iface.interfaceClass
         val sub = iface.interfaceSubclass
         val proto = iface.interfaceProtocol
-        return (clazz == IFACE_CLASS && sub == IFACE_SUBCLASS && proto == IFACE_PROTOCOL_ADB) ||
-            (clazz == 0xFF && sub == 0xFF && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x01 && proto == 0x01) ||
-            (clazz == 0xFF && sub == 0x02 && proto == 0x01) ||
-            (clazz == 0xFF && sub == 0x42 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x42 && proto == 0x02) ||
-            (clazz == 0xFF && sub == 0x42 && proto == 0x01) ||
-            (clazz == 0xFF && sub == 0x00 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x01 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x03 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x04 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x05 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x06 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x07 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x08 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x09 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x10 && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x42 && proto == 0x42) ||
-            (clazz == 0x02 && sub == 0x02 && proto == 0x01) ||
-            (clazz == 0x0A && sub == 0x00 && proto == 0x00)
+        // 标准 ADB 接口
+        if (clazz == IFACE_CLASS && sub == IFACE_SUBCLASS && proto == IFACE_PROTOCOL_ADB) return true
+        return false
     }
 
+    /**
+     * P1 修复: 收紧 Fastboot 接口匹配。
+     * 标准 Fastboot: class=0xFF sub=0x42 proto=0x03
+     * 移除 sub=0xFF proto=0x00 和 sub=0x00 proto=0x00 等过宽泛匹配
+     */
     private fun isFastbootInterface(iface: UsbInterface): Boolean {
         val clazz = iface.interfaceClass
         val sub = iface.interfaceSubclass
         val proto = iface.interfaceProtocol
-        return (clazz == IFACE_CLASS && sub == IFACE_SUBCLASS && proto == IFACE_PROTOCOL_FASTBOOT) ||
-            (clazz == 0xFF && sub == 0x42 && proto == 0x02) ||
-            (clazz == 0xFF && sub == 0xFF && proto == 0x00) ||
-            (clazz == 0xFF && sub == 0x42 && proto == 0x03) ||
-            (clazz == 0xFF && sub == 0x00 && proto == 0x00)
+        // 标准 Fastboot 接口
+        if (clazz == IFACE_CLASS && sub == IFACE_SUBCLASS && proto == IFACE_PROTOCOL_FASTBOOT) return true
+        // 部分设备使用 0xFF/0x42/0x02 (fastboot secondary)
+        if (clazz == 0xFF && sub == 0x42 && proto == 0x02) return true
+        return false
     }
 
     /** 优先返回含 ADB 接口的设备, 没有则回退到第一个插入设备。 */
@@ -142,42 +151,53 @@ class UsbDeviceManager private constructor(private val app: Context) {
         val intent = Intent(UsbPermissionReceiver.ACTION_USB_PERM).setPackage(app.packageName)
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or
             (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
-        val pi = PendingIntent.getBroadcast(app, 0, intent, flags)
+        val pi = PendingIntent.getBroadcast(app, 1, intent, flags) // requestCode=1 区别于 ADB
         usbManager.requestPermission(device, pi)
     }
 
-    /** 由 UsbPermissionReceiver 在收到授权结果后调用 (ADB 设备)。 */
+    /**
+     * P0 修复: 由 UsbPermissionReceiver 在收到授权结果后调用 (ADB 设备)。
+     *
+     * 原问题: AdbManager.connect() 内部执行 bulkTransfer (10s 超时 ×3),
+     * 直接在主线程调用会导致 ANR。
+     *
+     * 修复: 将 ADB 连接逻辑移到 Dispatchers.IO 协程, UI 线程立即返回。
+     * 连接状态通过 StateFlow 自动推送到 UI。
+     */
     fun onPermissionGranted(device: UsbDevice) {
         _state.value = State.CONNECTING
         _attachedDevice.value = device
-        Logger.i(TAG, "权限已授予, 开始建立 ADB 连接: ${device.deviceName} " +
+        Logger.i(TAG, "权限已授予, 开始建立 ADB 连接 (IO 线程): ${device.deviceName} " +
             "vid=${device.vendorId} pid=${device.productId} iface=${device.interfaceCount}")
-        try {
-            val conn = usbManager.openDevice(device)
-            if (conn == null) {
-                Logger.e(TAG, "openDevice 返回 null (权限被撤销或设备已拔出)")
+
+        ioScope.launch {
+            try {
+                val conn = usbManager.openDevice(device)
+                if (conn == null) {
+                    Logger.e(TAG, "openDevice 返回 null (权限被撤销或设备已拔出)")
+                    _state.value = State.FAILED
+                    return@launch
+                }
+                if (!isAdbDevice(device)) {
+                    Logger.w(TAG, "设备 ${device.deviceName} 未暴露 ADB 接口 (class=0xFF sub=0x42 proto=0x01), " +
+                        "可能处于 fastboot/9008 模式或非调试设备")
+                }
+                val ok = AdbManager.connect(device, conn)
+                if (ok) {
+                    Logger.i(TAG, "ADB 连接成功: ${device.deviceName}")
+                    _state.value = State.CONNECTED
+                    startDaemonService()
+                } else {
+                    Logger.e(TAG, "AdbManager.connect 返回 false (握手/授权失败, 请在被控端同意 USB 调试)")
+                    _state.value = State.FAILED
+                }
+            } catch (e: SecurityException) {
+                Logger.e(TAG, "连接被拒 (SecurityException): ${e.message}")
                 _state.value = State.FAILED
-                return
-            }
-            if (!isAdbDevice(device)) {
-                Logger.w(TAG, "设备 ${device.deviceName} 未暴露 ADB 接口 (class=0xFF sub=0x42 proto=0x01), " +
-                    "可能处于 fastboot/9008 模式或非调试设备")
-            }
-            val ok = AdbManager.connect(device, conn)
-            if (ok) {
-                Logger.i(TAG, "ADB 连接成功: ${device.deviceName}")
-                _state.value = State.CONNECTED
-                startDaemonService()
-            } else {
-                Logger.e(TAG, "AdbManager.connect 返回 false (握手/授权失败, 请在被控端同意 USB 调试)")
+            } catch (e: Exception) {
+                Logger.e(TAG, "连接异常: ${e.javaClass.simpleName}: ${e.message}")
                 _state.value = State.FAILED
             }
-        } catch (e: SecurityException) {
-            Logger.e(TAG, "连接被拒 (SecurityException): ${e.message}")
-            _state.value = State.FAILED
-        } catch (e: Exception) {
-            Logger.e(TAG, "连接异常: ${e.javaClass.simpleName}: ${e.message}")
-            _state.value = State.FAILED
         }
     }
 

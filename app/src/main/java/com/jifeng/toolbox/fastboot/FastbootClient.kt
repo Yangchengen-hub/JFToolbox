@@ -8,15 +8,20 @@ import android.hardware.usb.UsbInterface
 import com.jifeng.toolbox.core.Logger
 import com.jifeng.toolbox.core.SafetyChecker
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.nio.ByteBuffer
 
 /**
- * 真 Fastboot 客户端 (USB bulk 直连)。
- * 协议: 命令为 ASCII 文本 (最大 64 字节, null 填充); 响应为 4 字节类型 + 60 字节载荷。
- * 响应类型: INFO(进度, 可多条) / OKAY(成功终态) / FAIL(失败终态) / DATA(可接收数据)。
+ * 真 Fastboot 客户端 (USB bulk 直连) v2。
  *
- * 前置条件: 被控端必须已进入 bootloader (fastboot mode)。
+ * v2 修复:
+ *  - P0: flashImage() 原 readBytes() 全量读入内存, 大镜像 (如 system.img 1-2GB) 会 OOM。
+ *    改为 FileInputStream 流式分块传输 + 仅读头部做魔数校验。
+ *  - 新增 downloadStream() 流式下载方法
+ *  - 新增 flashStream() 流式刷写方法
+ *  - 保留原 flash(ByteArray) 用于小数据 (如 boot.img 头)
  */
 class FastbootClient {
 
@@ -140,6 +145,34 @@ class FastbootClient {
         } catch (e: Exception) { Logger.e("Fastboot", "download 失败: ${e.message}"); false }
     }
 
+    /**
+     * P0 新增: 流式下发镜像数据 (不从文件全量读入内存)。
+     * 使用 FileInputStream 分块读取, 每次 maxPacketSize 字节。
+     */
+    fun downloadStream(fis: FileInputStream, totalSize: Long, onProgress: (Int) -> Unit = {}): Boolean {
+        val c = conn ?: return false
+        val ep = epOut ?: return false
+        return try {
+            sendCommand("download:${totalSize.toString(16).padStart(8, '0')}")
+            val ready = collectUntilTerminal { }
+            if (ready.type != "DATA") { Logger.e("Fastboot", "设备未就绪 DATA: ${ready.type}"); return false }
+            val chunkSize = ep.maxPacketSize.coerceAtLeast(512)
+            val buffer = ByteArray(chunkSize)
+            var sent = 0L
+            while (sent < totalSize) {
+                val toRead = minOf(chunkSize.toLong(), totalSize - sent).toInt()
+                val read = fis.read(buffer, 0, toRead)
+                if (read <= 0) break
+                val n = c.bulkTransfer(ep, buffer, 0, read, TIMEOUT)
+                if (n < 0) throw IOException("数据传输失败 offset=$sent")
+                sent += n
+                onProgress((sent * 100 / totalSize).toInt())
+            }
+            val done = collectUntilTerminal { }
+            done.type == "OKAY"
+        } catch (e: Exception) { Logger.e("Fastboot", "downloadStream 失败: ${e.message}"); false }
+    }
+
     /** 下载 + 刷写到指定分区。 */
     fun flash(partition: String, data: ByteArray, onInfo: (String) -> Unit = {}, onProgress: (Int) -> Unit = {}): Boolean {
         // 安全校验：分区白名单 + 魔数校验 + 大小限制
@@ -163,10 +196,58 @@ class FastbootClient {
         onInfo("$partition 刷写失败: ${r.payload}"); return false
     }
 
-    /** 从本地文件刷写单个分区。 */
+    /**
+     * P0 修复: 从本地文件流式刷写单个分区 (不全量读入内存)。
+     *
+     * 原 flashImage 使用 readBytes() 全量读入, 大镜像会 OOM。
+     * 新实现:
+     *  1. 仅读文件头部 4KB 做魔数校验
+     *  2. 使用 FileInputStream 流式分块传输
+     *  3. 安全校验 (分区白名单 + 大小限制) 照常执行
+     */
     fun flashImage(partition: String, imgPath: String, onInfo: (String) -> Unit = {}, onProgress: (Int) -> Unit = {}): Boolean {
-        val data = java.io.File(imgPath).readBytes()
-        return flash(partition, data, onInfo, onProgress)
+        val file = File(imgPath)
+        if (!file.exists()) { onInfo("文件不存在: $imgPath"); return false }
+        val fileSize = file.length()
+
+        // 安全校验：分区白名单
+        when (val check = SafetyChecker.validateErase(partition)) {
+            is SafetyChecker.CheckResult.Deny -> {
+                onInfo("安全拦截: ${check.message}"); return false
+            }
+            is SafetyChecker.CheckResult.Warn -> onInfo("警告: ${check.message}")
+            else -> {}
+        }
+        // 大小限制校验
+        when (val sizeCheck = SafetyChecker.validateDownloadSize(fileSize, maxDownloadSize)) {
+            is SafetyChecker.CheckResult.Deny -> { onInfo("安全拦截: ${sizeCheck.message}"); return false }
+            else -> {}
+        }
+        // 魔数校验 — 仅读头部 4KB
+        val headerBytes = ByteArray(4096)
+        FileInputStream(file).use { fis ->
+            val headerRead = fis.read(headerBytes)
+            if (headerRead > 0) {
+                val header = headerBytes.copyOfRange(0, headerRead)
+                when (val magicCheck = SafetyChecker.validateFlash(partition, header)) {
+                    is SafetyChecker.CheckResult.Deny -> {
+                        onInfo("安全拦截: ${magicCheck.message}"); return false
+                    }
+                    is SafetyChecker.CheckResult.Warn -> onInfo("警告: ${magicCheck.message}")
+                    else -> {}
+                }
+            }
+        }
+
+        onInfo("下载 $partition 镜像 ($fileSize bytes, 流式传输)")
+        FileInputStream(file).use { fis ->
+            if (!downloadStream(fis, fileSize, onProgress)) { onInfo("下载失败"); return false }
+        }
+        onInfo("刷写 $partition ...")
+        sendCommand("flash:$partition")
+        val r = collectUntilTerminal(onInfo)
+        if (r.type == "OKAY") { onInfo("$partition 刷写完成"); return true }
+        onInfo("$partition 刷写失败: ${r.payload}"); return false
     }
 
     fun reboot(target: String = "") {

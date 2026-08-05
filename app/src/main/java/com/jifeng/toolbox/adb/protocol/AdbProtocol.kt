@@ -24,7 +24,13 @@ object AdbProtocol {
     const val AUTH_SIGNATURE = 2
     const val AUTH_RSAPUBLICKEY = 3
 
-    const val VERSION = 0x01000000          // ADB 协议版本
+    /**
+     * P1 修复: ADB 协议版本号。
+     * 原值 0x01000000 (v1.0.0) 与 banner 中声明的 shell_v2/stat_v2 特性不匹配 —
+     * shell_v2 需要 VERSION >= 0x01000001 (AOSP commit: adb shell protocol v2)。
+     * 修正为 0x01000001 以匹配 banner 中声明的特性。
+     */
+    const val VERSION = 0x01000001          // ADB 协议版本 (shell_v2)
     const val MAX_PAYLOAD = 1024 * 1024     // 单包最大载荷 1 MiB
 
     /** 主机端 CNXN banner: identity::features=...\0 */

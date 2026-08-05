@@ -7,14 +7,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 /**
- * 极风工具箱设计 Token (小米风格 + 液态玻璃适配)。
- * 主色取自 HyperOS 的精神色 (橙红渐变), 背景偏冷调以凸显玻璃通透感。
+ * 极风工具箱设计 Token v2 — 顶级视觉系统。
+ *
+ * v2 改进:
+ *  - 深色模式背景从 #0E1015 改为 #08080C (更深, 玻璃卡片对比度更高)
+ *  - 品牌色微调: #FF6B35 → #FF6B35 (保持不变, 但增加渐变变体)
+ *  - 新增 accent 渐变色组 (用于按钮/图标渐变)
+ *  - 玻璃色调整: 深色模式 tint 降低透明度让背景透出, 浅色模式提高
+ *  - 新增 success/warning/danger/info 的 container 变体
  */
 object JFColors {
-    // 品牌主色 - 极风橙 (跨亮暗模式通用)
+    // 品牌主色 - 极风橙
     val Brand = Color(0xFFFF6B35)
     val BrandVariant = Color(0xFFFF8E53)
     val BrandContainer = Color(0xFFFFD4C4)
+    val BrandGradientStart = Color(0xFFFF6B35)
+    val BrandGradientEnd = Color(0xFFFF9F1C)
 
     // 浅色模式
     val LightBg = Color(0xFFF5F7FA)
@@ -24,25 +32,33 @@ object JFColors {
     val LightOnSurface = Color(0xFF2A2A2A)
     val LightOutline = Color(0xFFD8DCE3)
 
-    // 深色模式 (背景稍带蓝调, 不再纯黑, 卡片更可见)
-    val DarkBg = Color(0xFF0E1015)
-    val DarkSurface = Color(0xFF15171D)
-    val DarkSurfaceVariant = Color(0xFF1F2229)
+    // 深色模式 (背景更深, 玻璃通透感更强)
+    val DarkBg = Color(0xFF08080C)
+    val DarkSurface = Color(0xFF101015)
+    val DarkSurfaceVariant = Color(0xFF1A1A22)
     val DarkOnBg = Color(0xFFE8E9EC)
     val DarkOnSurface = Color(0xFFD2D4D9)
-    val DarkOutline = Color(0xFF2E323B)
+    val DarkOutline = Color(0xFF2A2A32)
 
-    // 液态玻璃主色 (半透明)
-    val GlassLightTint = Color(0xD9FFFFFF)     // 85% 白, alpha 略调高提升层次
-    val GlassDarkTint = Color(0xCC1C1F26)      // 80% 深灰, 稍亮让卡片更可见
-    val GlassLightStroke = Color(0x33FFFFFF)   // 20% 白
-    val GlassDarkStroke = Color(0x33FFFFFF)
+    // 液态玻璃主色 (半透明) — 调整透明度
+    val GlassLightTint = Color(0xE6FFFFFF)     // 90% 白
+    val GlassDarkTint = Color(0xB3141419)      // 70% 深灰 (降低让背景透出)
+    val GlassLightStroke = Color(0x40FFFFFF)   // 25% 白
+    val GlassDarkStroke = Color(0x33FFFFFF)    // 20% 白
 
     // 状态色
     val Success = Color(0xFF4CAF50)
+    val SuccessContainer = Color(0xFF1B3A1E)
     val Warning = Color(0xFFFFC107)
+    val WarningContainer = Color(0xFF3D341A)
     val Danger = Color(0xFFEF5350)
+    val DangerContainer = Color(0xFF3A1B1B)
     val Info = Color(0xFF2196F3)
+    val InfoContainer = Color(0xFF1A2533)
+
+    // 功能图标渐变色组 (用于 FeatureTile 的高级感)
+    val IconGradientStart = Color(0xFFFF6B35)
+    val IconGradientEnd = Color(0xFFFF9F1C)
 }
 
 val LightColorScheme = lightColorScheme(

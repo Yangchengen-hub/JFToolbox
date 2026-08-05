@@ -11,6 +11,12 @@ import android.os.Bundle
 import com.jifeng.toolbox.core.Logger
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,28 +28,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.EnhancedEncryption
 import androidx.compose.material.icons.filled.Flaky
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.ScreenShare
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.SettingsPower
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Usb
@@ -55,7 +59,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -66,6 +69,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -90,6 +96,8 @@ import com.jifeng.toolbox.ui.terminal.TerminalComposeActivity
 import com.jifeng.toolbox.ui.tweak.TweakComposeActivity
 import com.jifeng.toolbox.ui.wireless.WirelessDebugComposeActivity
 import com.jifeng.toolbox.ui.screenmirror.ScreenMirrorComposeActivity
+import com.jifeng.toolbox.ui.theme.JFColors
+import com.jifeng.toolbox.ui.theme.HyperOSMotion
 import com.jifeng.toolbox.usb.UsbDeviceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -191,6 +199,11 @@ class MainComposeActivity : ComponentActivity() {
         }
 
         Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            // Hero 标题区
+            HeroHeader()
+
+            Spacer(Modifier.height(16.dp))
+
             // 顶部设备信息卡片
             DeviceHeader(device, usbState, loading, onRefresh = { usbMgr.scanAndConnect() },
                 onReboot = { target ->
@@ -199,14 +212,36 @@ class MainComposeActivity : ComponentActivity() {
                     }
                 })
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
+
+            // 功能栅格标题
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(4.dp, 16.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(JFColors.BrandGradientStart, JFColors.BrandGradientEnd)
+                            )
+                        )
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "功能",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             // 功能栅格
-            Text("功能", style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(vertical = 8.dp))
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -216,6 +251,32 @@ class MainComposeActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Hero 标题区 — 顶部品牌区, 带渐变文字效果。
+     */
+    @Composable
+    private fun HeroHeader() {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(top = 16.dp, bottom = 4.dp)
+        ) {
+            Text(
+                "极风工具箱",
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                "JF Toolbox · 专业玩机工具集",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp)
+            )
         }
     }
 
@@ -231,51 +292,88 @@ class MainComposeActivity : ComponentActivity() {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.PhoneAndroid, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary)
+                    // 设备图标 — 渐变圆形背景
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                                    )
+                                )
+                            )
+                    ) {
+                        Icon(Icons.Default.PhoneAndroid, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(22.dp))
+                    }
                     Text("设备状态",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
-                    OutlinedButton(onClick = onRefresh,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)) {
+
+                    // 刷新按钮 — 渐变填充
+                    Button(
+                        onClick = onRefresh,
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
                         Text("刷新", style = MaterialTheme.typography.labelMedium)
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                when {
-                    loading -> Text("🔍 正在探测设备...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    device == null -> Text(
-                        when (usbState) {
-                            UsbDeviceManager.State.REQUESTING -> "⏳ 请在系统弹窗中授权 USB 调试..."
-                            UsbDeviceManager.State.CONNECTING -> "🔌 正在建立 ADB 连接..."
-                            UsbDeviceManager.State.FAILED -> "❌ 连接失败, 请检查 OTG 线与被控端 USB 调试设置"
-                            else -> "⚠️ 未检测到设备\n请通过 OTG 线连接被控设备并授权 USB 调试"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    else -> {
-                        Text(device!!.displayName,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(4.dp))
-                        Text("Android ${device!!.androidVersion} · ${device!!.chipset} · SDK ${device!!.sdkInt}",
+
+                // 状态内容 — 带淡入淡出动画
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(tween(300)),
+                    exit = fadeOut(tween(300))
+                ) {
+                    when {
+                        loading -> Text("正在探测设备...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("厂商: ${device!!.manufacturer} · 主板: ${device!!.board}",
+                        device == null -> Text(
+                            when (usbState) {
+                                UsbDeviceManager.State.REQUESTING -> "请在系统弹窗中授权 USB 调试..."
+                                UsbDeviceManager.State.CONNECTING -> "正在建立 ADB 连接..."
+                                UsbDeviceManager.State.FAILED -> "连接失败, 请检查 OTG 线与被控端 USB 调试设置"
+                                else -> "未检测到设备\n请通过 OTG 线连接被控设备并授权 USB 调试"
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Root: ${if (device!!.hasRoot == true) "✅ 已获取" else "❌ 未获取"} · 模式: ${device!!.connectionMode.label}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        else -> {
+                            Column {
+                                Text(device!!.displayName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(4.dp))
+                                Text("Android ${device!!.androidVersion} · ${device!!.chipset} · SDK ${device!!.sdkInt}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("厂商: ${device!!.manufacturer} · 主板: ${device!!.board}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Root: ${if (device!!.hasRoot == true) "已获取" else "未获取"} · 模式: ${device!!.connectionMode.label}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
 
                 Spacer(Modifier.height(12.dp))
+                // 重启按钮组
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RebootChip("系统", onReboot, "system")
                     RebootChip("Recovery", onReboot, "recovery")
@@ -286,20 +384,26 @@ class MainComposeActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    private fun RowScopeReboot(label: String, target: String, onReboot: (String) -> Unit) {
-        OutlinedButton(onClick = { onReboot(target) },
-            shape = RoundedCornerShape(20.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
-        }
-    }
-
+    /**
+     * v2 重启按钮 — 带按压缩放微交互。
+     * 移除了原 RowScopeReboot 死代码 (与 RebootChip 完全重复)。
+     */
     @Composable
     private fun RebootChip(label: String, onReboot: (String) -> Unit, target: String) {
-        OutlinedButton(onClick = { onReboot(target) },
+        val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        val pressed by interaction.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (pressed) 0.92f else 1f,
+            animationSpec = HyperOSMotion.cardPressSpring,
+            label = "rebootScale"
+        )
+        OutlinedButton(
+            onClick = { onReboot(target) },
             shape = RoundedCornerShape(20.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
+            interactionSource = interaction,
+            modifier = Modifier.scale(scale),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+        ) {
             Text(label, style = MaterialTheme.typography.labelMedium)
         }
     }

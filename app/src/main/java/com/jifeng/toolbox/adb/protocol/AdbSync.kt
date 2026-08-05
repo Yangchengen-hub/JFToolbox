@@ -3,21 +3,24 @@ package com.jifeng.toolbox.adb.protocol
 import com.jifeng.toolbox.core.Logger
 import com.jifeng.toolbox.core.SafetyChecker
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
  * ADB 文件同步 (sync: 协议), 用于 push/pull。
- * 协议: 在 sync: 流上发送 4 字节命令字 + 数据。
- *   SEND <path_len> <path> + DATA <len> <bytes> ... + DONE <mtime>
- *   RECV <path_len> <path> + 回读 DATA <len> <bytes> ... DONE / FAIL <msg>
+ *
+ * v2 修复:
+ *  - P0: push() 原 readBytes() 全量读入内存, 大文件 (如系统镜像) 会 OOM。
+ *    改为 FileInputStream 流式分块读取, 每次 64KB。
+ *  - push() 成功日志改为显示文件实际大小 (不再依赖内存中的 data.size)
  */
 class AdbSync(private val conn: AdbConnection) {
 
     private fun le32(v: Int) = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(v).array()
 
-    /** 推送本地文件到设备。 */
+    /** 推送本地文件到设备 (流式分块, 不全量读入内存)。 */
     fun push(localPath: String, remotePath: String, mtime: Int = (System.currentTimeMillis() / 1000).toInt()): Boolean {
         val local = File(localPath)
         if (!local.exists()) return false
@@ -27,31 +30,34 @@ class AdbSync(private val conn: AdbConnection) {
             else -> {}
         }
         val s = conn.openStream("sync:")
+        var totalSent = 0L
         return try {
             val pathBytes = remotePath.toByteArray()
             // SEND
-            s.writeWindow.acquire()  // openStream 后第一个写
-            // 注意: writeWindow 已在 openStream 的 OKAY 时 release 过一次, 这里需 acquire
-            // 实际上首次 writeWindow.acquire 会成功(初始 1)。但 openStream 没消耗它。
-            // 这里逻辑: openStream 不写数据, 所以 writeWindow 仍是 1, acquire 成功
+            s.writeWindow.acquire()
             conn.writeStream(s, cat("SEND", le32(pathBytes.size), pathBytes))
-            // DATA 块
-            val data = local.readBytes()
-            var off = 0
-            val chunk = 64 * 1024
-            while (off < data.size) {
-                val len = minOf(data.size - off, chunk)
-                conn.writeStream(s, cat("DATA", le32(len), data.copyOfRange(off, off + len)))
-                off += len
+
+            // DATA 块 — 流式分块读取, 避免 OOM
+            val chunkSize = 64 * 1024
+            val buffer = ByteArray(chunkSize)
+            FileInputStream(local).use { fis ->
+                while (true) {
+                    val read = fis.read(buffer)
+                    if (read <= 0) break
+                    val chunk = if (read == chunkSize) buffer else buffer.copyOfRange(0, read)
+                    conn.writeStream(s, cat("DATA", le32(read), chunk))
+                    totalSent += read
+                }
             }
             conn.writeStream(s, cat("DONE", le32(mtime)))
+
             // 读状态
             val status = s.readBytes(4, 5_000) ?: return false
             val lenBuf = s.readBytes(4, 5_000) ?: return false
             val msgLen = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).int
             val msg = if (msgLen > 0) String(s.readBytes(msgLen, 5_000) ?: ByteArray(0)) else ""
             if (String(status) == "OKAY") {
-                Logger.i("AdbSync", "push $remotePath 成功 (${data.size} bytes)")
+                Logger.i("AdbSync", "push $remotePath 成功 ($totalSent bytes)")
                 true
             } else {
                 Logger.e("AdbSync", "push 失败: $msg"); false

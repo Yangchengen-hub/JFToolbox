@@ -7,65 +7,84 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 /**
- * 极风工具箱设计 Token v2 — 顶级视觉系统。
+ * 极风工具箱设计 Token v3 — 澎湃OS 4 柔光玻璃设计语言。
  *
- * v2 改进:
- *  - 深色模式背景从 #0E1015 改为 #08080C (更深, 玻璃卡片对比度更高)
- *  - 品牌色微调: #FF6B35 → #FF6B35 (保持不变, 但增加渐变变体)
- *  - 新增 accent 渐变色组 (用于按钮/图标渐变)
- *  - 玻璃色调整: 深色模式 tint 降低透明度让背景透出, 浅色模式提高
- *  - 新增 success/warning/danger/info 的 container 变体
+ * v3 改进 (澎湃OS 4 柔光玻璃):
+ *  - 品牌色从橙色(#FF6B35)改为小米蓝渐变系(#2979FF → #448AFF)
+ *  - 深色模式背景改为更纯粹的深蓝黑(#0A0B10)
+ *  - 柔光玻璃材质色: 浅色白底85%透明, 深色底65%透明
+ *  - 新增"AI 感色"辅助色板 — 用于卡片根据内容动态调色
+ *  - 状态色调整色相使其更融入蓝色系
  */
 object JFColors {
-    // 品牌主色 - 极风橙
-    val Brand = Color(0xFFFF6B35)
-    val BrandVariant = Color(0xFFFF8E53)
-    val BrandContainer = Color(0xFFFFD4C4)
-    val BrandGradientStart = Color(0xFFFF6B35)
-    val BrandGradientEnd = Color(0xFFFF9F1C)
+    // ── 品牌主色 - 小米蓝渐变系 ──
+    val Brand = Color(0xFF2979FF)
+    val BrandVariant = Color(0xFF448AFF)
+    val BrandContainer = Color(0xFFC4DFFF)
+    val BrandGradientStart = Color(0xFF2979FF)
+    val BrandGradientEnd = Color(0xFF448AFF)
 
-    // 浅色模式
-    val LightBg = Color(0xFFF5F7FA)
+    // ── 浅色模式 ──
+    val LightBg = Color(0xFFF2F5FA)
     val LightSurface = Color(0xFFFFFFFF)
-    val LightSurfaceVariant = Color(0xFFEEF1F5)
-    val LightOnBg = Color(0xFF1A1A1A)
-    val LightOnSurface = Color(0xFF2A2A2A)
-    val LightOutline = Color(0xFFD8DCE3)
+    val LightSurfaceVariant = Color(0xFFE8EDF4)
+    val LightOnBg = Color(0xFF1A1C2E)
+    val LightOnSurface = Color(0xFF242638)
+    val LightOutline = Color(0xFFD0D8E8)
 
-    // 深色模式 (背景更深, 玻璃通透感更强)
-    val DarkBg = Color(0xFF08080C)
-    val DarkSurface = Color(0xFF101015)
-    val DarkSurfaceVariant = Color(0xFF1A1A22)
-    val DarkOnBg = Color(0xFFE8E9EC)
-    val DarkOnSurface = Color(0xFFD2D4D9)
-    val DarkOutline = Color(0xFF2A2A32)
+    // ── 深色模式 — 纯粹深蓝黑 ──
+    val DarkBg = Color(0xFF0A0B10)
+    val DarkSurface = Color(0xFF0F1018)
+    val DarkSurfaceVariant = Color(0xFF161822)
+    val DarkOnBg = Color(0xFFE4E6F0)
+    val DarkOnSurface = Color(0xFFCDD0DE)
+    val DarkOutline = Color(0xFF22243A)
 
-    // 液态玻璃主色 (半透明) — 调整透明度
-    val GlassLightTint = Color(0xE6FFFFFF)     // 90% 白
-    val GlassDarkTint = Color(0xB3141419)      // 70% 深灰 (降低让背景透出)
-    val GlassLightStroke = Color(0x40FFFFFF)   // 25% 白
-    val GlassDarkStroke = Color(0x33FFFFFF)    // 20% 白
+    // ── 柔光玻璃材质色 (澎湃OS 4) ──
+    val GlassLightTint = Color(0xD9FFFFFF)     // 85% 白 — 柔和半透明
+    val GlassDarkTint = Color(0xA60E0F18)       // 65% 深色底 — 更多背景透出
+    val GlassLightStroke = Color(0x26FFFFFF)    // 15% 白 — 边缘高光线条
+    val GlassDarkStroke = Color(0x1FFFFFFF)     // 12% 白 — 深色边缘微光
+    // 高光叠加色
+    val GlassHighlight = Color(0x14FFFFFF)      // 8% 白 — 顶部柔光
+    val GlassPressedLight = Color(0x0DFFFFFF)   // 5% 白 — 按压透光
+    val GlassPressedDark = Color(0x08FFFFFF)    // 3% 白 — 深色按压透光
 
-    // 状态色
-    val Success = Color(0xFF4CAF50)
-    val SuccessContainer = Color(0xFF1B3A1E)
-    val Warning = Color(0xFFFFC107)
-    val WarningContainer = Color(0xFF3D341A)
-    val Danger = Color(0xFFEF5350)
-    val DangerContainer = Color(0xFF3A1B1B)
-    val Info = Color(0xFF2196F3)
-    val InfoContainer = Color(0xFF1A2533)
+    // ── AI 感色辅助色板 — 卡片根据内容动态调色 ──
+    val AiSenseBlue = Color(0xFF4FC3F7)
+    val AiSensePurple = Color(0xFFCE93D8)
+    val AiSenseTeal = Color(0xFF80CBC4)
+    val AiSenseAmber = Color(0xFFFFD54F)
+    val AiSenseRose = Color(0xFFF48FB1)
+    val AiSenseIndigo = Color(0xFF9FA8DA)
+    // AI 感色容器 (深色底)
+    val AiSenseBlueContainer = Color(0xFF0D2137)
+    val AiSensePurpleContainer = Color(0xFF2A1533)
+    val AiSenseTealContainer = Color(0xFF0F2B28)
+    val AiSenseAmberContainer = Color(0xFF332B0F)
+    val AiSenseRoseContainer = Color(0xFF331525)
+    val AiSenseIndigoContainer = Color(0xFF1A1C33)
 
-    // 功能图标渐变色组 (用于 FeatureTile 的高级感)
-    val IconGradientStart = Color(0xFFFF6B35)
-    val IconGradientEnd = Color(0xFFFF9F1C)
+    // ── 状态色 — 融入蓝色系 ──
+    val Success = Color(0xFF43A6CB)
+    val SuccessContainer = Color(0xFF0F2A33)
+    val Warning = Color(0xFFD4A843)
+    val WarningContainer = Color(0xFF332C14)
+    val Danger = Color(0xFFD45B5B)
+    val DangerContainer = Color(0xFF331616)
+    val Info = Color(0xFF4A90D9)
+    val InfoContainer = Color(0xFF12203A)
+
+    // ── 功能图标渐变色组 ──
+    val IconGradientStart = Color(0xFF2979FF)
+    val IconGradientEnd = Color(0xFF448AFF)
 }
 
 val LightColorScheme = lightColorScheme(
     primary = JFColors.Brand,
     onPrimary = Color.White,
     primaryContainer = JFColors.BrandContainer,
-    onPrimaryContainer = Color(0xFF3D1100),
+    onPrimaryContainer = Color(0xFF001A40),
     secondary = JFColors.BrandVariant,
     onSecondary = Color.White,
     background = JFColors.LightBg,
@@ -81,7 +100,7 @@ val LightColorScheme = lightColorScheme(
 val DarkColorScheme = darkColorScheme(
     primary = JFColors.Brand,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF5D2200),
+    primaryContainer = Color(0xFF003063),
     onPrimaryContainer = JFColors.BrandContainer,
     secondary = JFColors.BrandVariant,
     onSecondary = Color.White,

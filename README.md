@@ -1,5 +1,4 @@
 # 极风工具箱 | JFToolbox
-
 <p align="center">
   <strong>🦊 免 Root · OTG 直连 · 全安卓刷机/调试/玩机全能工具箱</strong>
 </p>
@@ -12,12 +11,10 @@
 ## 📱 简介 | Introduction
 
 **中文：**
-
-极风工具箱是一款面向安卓发烧友、刷机爱好者和开发者的全能工具箱应用。通过 USB-OTG 线直连手机，无需 Root 即可实现 ADB 调试、Fastboot 刷机、9008 救砖等高级操作。采用液态玻璃 UI 设计风格，搭载 HyperOS 级别动画引擎，提供 25+ 功能模块。
+极风工具箱是一款面向安卓发烧友、刷机爱好者和开发者的全能工具箱应用。通过 USB-OTG 线直连手机，无需 Root 即可实现 ADB 调试、Fastboot 刷机、9008 救砖等高级操作。采用澎湃OS 4 柔光玻璃 UI 设计风格，搭载「生命感动效」动画引擎，提供 25+ 功能模块。
 
 **English:**
-
-JFToolbox is an all-in-one toolkit designed for Android enthusiasts, flashaholics, and developers. By connecting your phone directly via USB-OTG cable, you can perform advanced operations like ADB debugging, Fastboot flashing, and 9008 EDL rescue — all without root. Featuring a Liquid Glass UI design and HyperOS-level animation engine, it provides 25+ functional modules.
+JFToolbox is an all-in-one toolkit designed for Android enthusiasts, flashaholics, and developers. By connecting your phone directly via USB-OTG cable, you can perform advanced operations like ADB debugging, Fastboot flashing, and 9008 EDL rescue — all without root. Featuring a HyperOS 4 Frosted Glass UI design and "Life in Motion" animation engine, it provides 25+ functional modules.
 
 ---
 
@@ -30,7 +27,7 @@ JFToolbox is an all-in-one toolkit designed for Android enthusiasts, flashaholic
 | Fastboot 刷机 (ZIP/IMG, 分区校验) | Fastboot flashing (ZIP/IMG, partition validation) |
 | 9008 EDL 救砖模式 | 9008 EDL brick rescue mode |
 | RSA 密钥管理与设备授权 | RSA key management & device authorization |
-| 液态玻璃 UI + HyperOS 动画 | Liquid Glass UI + HyperOS animations |
+| 澎湃OS 4 柔光玻璃 UI + 生命感动效 | HyperOS 4 Frosted Glass UI + Life in Motion animations |
 | 多线程分片下载器 | Multi-threaded segmented downloader |
 | 内置 WebView 浏览器 | Built-in WebView browser |
 | 多语言终端 (Shell/Python/JS/Lua/C++/AI) | Multi-language terminal (Shell/Python/JS/Lua/C++/AI) |
@@ -50,8 +47,8 @@ JFToolbox is an all-in-one toolkit designed for Android enthusiasts, flashaholic
 ### 🚀 最新版本 | Latest Version
 
 <p align="center">
-  <a href="https://github.com/Yangchengen-hub/JFToolbox/releases/latest/download/JFToolbox-v2.3.0.apk" target="_blank">
-    <img src="https://img.shields.io/badge/下载%20APK%20v2.3.0-%231A73E8.svg?style=for-the-badge&logo=android&logoColor=white" alt="下载 APK" />
+  <a href="https://github.com/Yangchengen-hub/JFToolbox/releases/latest/download/JFToolbox-v3.0.0.apk" target="_blank">
+    <img src="https://img.shields.io/badge/下载%20APK%20v3.0.0-%232979FF.svg?style=for-the-badge&logo=android&logoColor=white" alt="下载 APK" />
   </a>
   <a href="https://github.com/Yangchengen-hub/JFToolbox/releases" target="_blank">
     <img src="https://img.shields.io/github/v/release/Yangchengen-hub/JFToolbox?include_prereleases&style=for-the-badge" alt="Release" />
@@ -64,7 +61,7 @@ JFToolbox is an all-in-one toolkit designed for Android enthusiasts, flashaholic
 ### 方式一：直接下载 APK | Option 1: Direct APK Download
 
 **最新版下载（推荐）：**
-- [📥 JFToolbox-v2.3.0.apk](https://github.com/Yangchengen-hub/JFToolbox/releases/latest/download/JFToolbox-v2.3.0.apk)
+- [📥 JFToolbox-v3.0.0.apk](https://github.com/Yangchengen-hub/JFToolbox/releases/latest/download/JFToolbox-v3.0.0.apk)
 
 **所有历史版本：**
 - [📋 Releases 页面](https://github.com/Yangchengen-hub/JFToolbox/releases)
@@ -102,11 +99,26 @@ cd JFToolbox
 
 | 项目 | 详情 | Item | Details |
 |------|------|------|---------|
-| 当前版本 | v2.3.0 | Current Version | v2.3.0 |
-| 版本号 | 6 | Version Code | 6 |
+| 当前版本 | v3.0.0 | Current Version | v3.0.0 |
+| 版本号 | 7 | Version Code | 7 |
 | 支持架构 | arm64-v8a / armeabi-v7a / x86_64 | Architectures | arm64-v8a / armeabi-v7a / x86_64 |
 | 最小系统 | Android 7.0 (API 24) | Min SDK | Android 7.0 (API 24) |
 | 目标系统 | Android 14 (API 34) | Target SDK | Android 14 (API 34) |
+
+---
+
+## 🎨 设计语言 | Design Language
+
+**澎湃OS 4 柔光玻璃 (HyperOS 4 Frosted Glass)**
+
+v3.0.0 全面采用小米澎湃OS 4 的「柔光玻璃」设计语言：
+- **小米蓝渐变品牌色** (#2979FF → #448AFF)
+- **柔光玻璃材质**: 半透明 + 高斯模糊 + 边缘高光线条
+- **「生命感动效」曲线**: emphasizedDecelerate / emphasizedAccelerate
+- **弹簧系统**: softBounce / crispBounce / floatSpring
+- **AI 感色辅助色板**: 卡片根据内容动态调色
+- **2.5D 图标效果**: 多层阴影 + 微视差
+- **渐变网格背景**: 模拟壁纸色彩渗透感
 
 ---
 
@@ -146,7 +158,6 @@ cd JFToolbox
 ## 🔒 安全保障 | Safety Guarantees
 
 **中文：**
-
 - ✅ 分区白名单机制，防止误刷关键分区
 - ✅ 镜像文件 Magic Number 校验
 - ✅ GPT 分区表砖机检测（分区数=0 时警告）
@@ -155,7 +166,6 @@ cd JFToolbox
 - ✅ 刷机进度通知栏实时显示
 
 **English:**
-
 - ✅ Partition whitelist mechanism to prevent flashing critical partitions
 - ✅ Image file magic number validation
 - ✅ GPT partition table brick detection (warning when partition count = 0)
@@ -171,6 +181,7 @@ cd JFToolbox
 |------|------|------|------|
 | 语言 | Kotlin | Language | Kotlin |
 | UI 框架 | Jetpack Compose + Material 3 | UI Framework | Jetpack Compose + Material 3 |
+| 设计语言 | 澎湃OS 4 柔光玻璃 | Design Language | HyperOS 4 Frosted Glass |
 | 最低版本 | Android 7.0 (API 24) | Min SDK | Android 7.0 (API 24) |
 | 目标版本 | Android 14 (API 34) | Target SDK | Android 14 (API 34) |
 | 构建工具 | Gradle 8.14 | Build Tool | Gradle 8.14 |
@@ -187,9 +198,7 @@ cd JFToolbox
 ## ⚠️ 免责声明 | Disclaimer
 
 **中文：**
-
 本软件（极风工具箱 / JFToolbox）仅供技术学习与研究目的使用。使用者需遵守以下条款：
-
 1. **风险自担：** 刷机、解锁 Bootloader、修改系统分区等操作可能导致设备变砖、数据丢失、失去保修等后果，所有风险由使用者自行承担。
 2. **版权尊重：** 使用本工具下载或刷入的任何固件、ROM、镜像文件，其版权归原版权所有者所有。使用者应确保拥有合法使用权。
 3. **合法使用：** 使用者应确保遵守所在地区的法律法规，不得将本工具用于任何非法用途。
@@ -199,9 +208,7 @@ cd JFToolbox
 本软件开发者（极风工作室）不对因使用本软件而导致的任何直接或间接损失承担责任。
 
 **English:**
-
 This software (JFToolbox) is provided for technical learning and research purposes only. Users must comply with the following terms:
-
 1. **Risk Assumption:** Flashing, unlocking bootloader, modifying system partitions, and other operations may result in device bricking, data loss, loss of warranty, etc. All risks are borne by the user.
 2. **Copyright Respect:** Any firmware, ROM, or image files downloaded or flashed using this tool are owned by their respective copyright holders. Users must ensure they have legal usage rights.
 3. **Legal Use:** Users must comply with local laws and regulations and must not use this tool for any illegal purposes.
@@ -215,7 +222,6 @@ The developer of this software (JFToolbox Studio) shall not be liable for any di
 ## 🙏 鸣谢 | Acknowledgments
 
 **中文：** 本项目借鉴了以下开源项目的技术与思路：
-
 **English:** This project draws on the technology and ideas of the following open-source projects:
 
 - [ADB Protocol Specification](https://source.android.com/docs/setup/start/adb) — Android Debug Bridge Protocol
@@ -254,18 +260,23 @@ of this software and associated documentation files...
 
 ## 📌 版本信息 | Version Info
 
-**当前版本 | Current Version:** `2.3.0`
+**当前版本 | Current Version:** `v3.0.0`
 
 **更新日志 | Changelog:**
-
+- v3.0.0 — 澎湃OS 4 柔光玻璃大改版 | HyperOS 4 Frosted Glass Redesign
+  - 🎨 品牌色升级为小米蓝渐变 (#2979FF → #448AFF) | Brand color upgraded to Xiaomi Blue gradient
+  - 🪟 全面柔光玻璃材质 (半透明 + 高斯模糊 + 边缘高光) | Full frosted glass material
+  - ✨ 「生命感动效」曲线引擎 | "Life in Motion" animation curve engine
+  - 🎯 AI 感色辅助色板 | AI sense color palette
+  - 📐 2.5D 图标效果 + 微视差 | 2.5D icon effect with parallax
+  - 🌊 渐变网格壁纸背景 | Gradient mesh wallpaper background
+  - 📱 功能栅格改为 2 列大卡片 | Feature grid changed to 2-column large cards
+  - 💊 重启按钮改为玻璃胶囊样式 | Reboot buttons changed to glass capsule style
 - v2.3.0 — 正式发布 | Official Release
   - ✅ 25+ 功能模块全部就绪 | All 25+ feature modules ready
   - ✅ 液态玻璃 UI + HyperOS 动画 | Liquid Glass UI + HyperOS animations
   - ✅ 免 Root OTG 直连 | No-Root OTG direct connection
   - ✅ ADB/Fastboot/9008 全协议支持 | Full ADB/Fastboot/9008 protocol support
-  - ✅ 权限自动请求与跳转 | Automatic permission request & navigation
-  - ✅ 通知栏刷机进度 | Notification bar flashing progress
-  - ✅ 双语文档 | Bilingual documentation
 
 ---
 

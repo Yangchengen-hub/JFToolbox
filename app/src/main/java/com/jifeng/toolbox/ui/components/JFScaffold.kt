@@ -16,18 +16,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.jifeng.toolbox.ui.theme.JFColors
 import com.jifeng.toolbox.ui.theme.JFTheme
 
 /**
- * 应用壳 v2 — 顶级视觉框架。
+ * 应用壳 v3 — 澎湃OS 4 柔光玻璃框架。
  *
- * v2 改进:
- *  - 新增背景渐变 (顶到底的微妙渐变, 增加纵深氛围)
- *  - 使用 windowInsetsPadding(statusBars) 替代 systemBarsPadding (更精确)
- *  - 状态栏区域透明, 背景渐变延伸到状态栏
+ * v3 改进:
+ *  - 背景层加入微妙的渐变网格 (模拟壁纸色彩渗透感)
+ *  - 使用小米蓝渐变色系作为氛围光
+ *  - 多层径向渐变模拟壁纸色彩渗透
  */
 @Composable
 fun JFScaffold(
@@ -46,18 +47,46 @@ fun JFScaffold(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawWithCache {
-                        // 背景渐变 — 从顶部微亮到底部深色, 营造空间纵深
-                        val gradient = Brush.verticalGradient(
+                        // 渐变网格 — 模拟壁纸色彩渗透感
+                        val isDark = MaterialTheme.colorScheme.background.red < 0.5f
+                        val brandAlpha = if (isDark) 0.06f else 0.03f
+                        val accentAlpha = if (isDark) 0.04f else 0.02f
+
+                        // 顶部品牌色渐变
+                        val topGradient = Brush.verticalGradient(
                             colors = listOf(
-                                JFColors.Brand.copy(alpha = 0.03f),
+                                JFColors.Brand.copy(alpha = brandAlpha),
                                 Color.Transparent,
                                 Color.Transparent
                             ),
                             startY = 0f,
-                            endY = size.height * 0.3f
+                            endY = size.height * 0.35f
                         )
+
+                        // 右上角辅助色渐变 (紫色渗透)
+                        val rightGlow = Brush.radialGradient(
+                            colors = listOf(
+                                JFColors.AiSensePurple.copy(alpha = accentAlpha),
+                                Color.Transparent
+                            ),
+                            center = Offset(size.width * 0.9f, size.height * 0.15f),
+                            radius = size.width * 0.4f
+                        )
+
+                        // 左下角辅助色渐变 (蓝色渗透)
+                        val leftGlow = Brush.radialGradient(
+                            colors = listOf(
+                                JFColors.AiSenseBlue.copy(alpha = accentAlpha),
+                                Color.Transparent
+                            ),
+                            center = Offset(size.width * 0.1f, size.height * 0.85f),
+                            radius = size.width * 0.35f
+                        )
+
                         onDrawBehind {
-                            drawRect(gradient)
+                            drawRect(topGradient)
+                            drawRect(rightGlow)
+                            drawRect(leftGlow)
                         }
                     }
             ) {

@@ -54,11 +54,8 @@ import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -70,10 +67,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.jifeng.toolbox.adb.AdbManager
 import com.jifeng.toolbox.core.DeviceDetector
@@ -81,6 +82,7 @@ import com.jifeng.toolbox.core.DeviceInfo
 import com.jifeng.toolbox.ui.about.AboutComposeActivity
 import com.jifeng.toolbox.ui.browser.BrowserComposeActivity
 import com.jifeng.toolbox.ui.components.FeatureTile
+import com.jifeng.toolbox.ui.components.GlassCapsuleButton
 import com.jifeng.toolbox.ui.components.LiquidGlassCard
 import com.jifeng.toolbox.ui.components.JFScaffold
 import com.jifeng.toolbox.ui.crypto.CryptoComposeActivity
@@ -199,12 +201,11 @@ class MainComposeActivity : ComponentActivity() {
         }
 
         Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            // Hero 标题区
+            // Hero 标题区 — 澎湃OS 4 风格
             HeroHeader()
-
             Spacer(Modifier.height(16.dp))
 
-            // 顶部设备信息卡片
+            // 顶部设备信息卡片 — 柔光玻璃材质
             DeviceHeader(device, usbState, loading, onRefresh = { usbMgr.scanAndConnect() },
                 onReboot = { target ->
                     device?.serial?.let { s ->
@@ -238,9 +239,9 @@ class MainComposeActivity : ComponentActivity() {
                 )
             }
 
-            // 功能栅格
+            // 功能栅格 — 2 列大卡片 (澎湃OS 4 风格)
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -255,7 +256,7 @@ class MainComposeActivity : ComponentActivity() {
     }
 
     /**
-     * Hero 标题区 — 顶部品牌区, 带渐变文字效果。
+     * Hero 标题区 — 澎湃OS 4 风格: 字重加大, 副标题渐变色。
      */
     @Composable
     private fun HeroHeader() {
@@ -267,15 +268,29 @@ class MainComposeActivity : ComponentActivity() {
         ) {
             Text(
                 "极风工具箱",
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            // 副标题 — 渐变色彩
             Text(
-                "JF Toolbox · 专业玩机工具集",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp)
+                text = buildAnnotatedString {
+                    withStyle(
+                        style = SpanStyle(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    JFColors.BrandGradientStart,
+                                    JFColors.BrandGradientEnd
+                                )
+                            ),
+                            fontWeight = FontWeight.Medium
+                        )
+                    ) {
+                        append("JF Toolbox · 专业玩机工具集")
+                    }
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }
@@ -288,55 +303,66 @@ class MainComposeActivity : ComponentActivity() {
         onRefresh: () -> Unit,
         onReboot: (String) -> Unit
     ) {
-        LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
+        LiquidGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp, padding = 16.dp) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // 设备图标 — 渐变圆形背景
+                    // 设备图标 — 渐变圆形背景 (蓝色系)
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                                        JFColors.BrandGradientStart.copy(alpha = 0.8f),
+                                        JFColors.BrandGradientEnd.copy(alpha = 0.6f)
                                     )
                                 )
                             )
+                            .drawBehind {
+                                // 外层柔光
+                                drawCircle(
+                                    color = JFColors.Brand.copy(alpha = 0.15f),
+                                    radius = size.minDimension / 2f + 4f
+                                )
+                            }
                     ) {
                         Icon(Icons.Default.PhoneAndroid, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = Color.White,
                             modifier = Modifier.size(22.dp))
                     }
-                    Text("设备状态",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.weight(1f))
-
-                    // 刷新按钮 — 渐变填充
-                    Button(
-                        onClick = onRefresh,
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                    ) {
-                        Text("刷新", style = MaterialTheme.typography.labelMedium)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("设备状态",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold)
+                        Text(
+                            when {
+                                loading -> "探测中..."
+                                device != null -> "已连接"
+                                else -> "未连接"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (device != null) JFColors.Success
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                    // 刷新按钮 — 玻璃胶囊样式
+                    GlassCapsuleButton(
+                        text = "刷新",
+                        onClick = onRefresh
+                    )
                 }
+
                 Spacer(Modifier.height(12.dp))
 
                 // 状态内容 — 带淡入淡出动画
                 AnimatedVisibility(
                     visible = true,
-                    enter = fadeIn(tween(300)),
-                    exit = fadeOut(tween(300))
+                    enter = fadeIn(tween(HyperOSMotion.durationMedium)),
+                    exit = fadeOut(tween(HyperOSMotion.durationMedium))
                 ) {
                     when {
                         loading -> Text("正在探测设备...",
@@ -373,38 +399,15 @@ class MainComposeActivity : ComponentActivity() {
                 }
 
                 Spacer(Modifier.height(12.dp))
-                // 重启按钮组
+
+                // 重启按钮组 — 玻璃胶囊样式
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RebootChip("系统", onReboot, "system")
-                    RebootChip("Recovery", onReboot, "recovery")
-                    RebootChip("Bootloader", onReboot, "bootloader")
-                    RebootChip("9008", onReboot, "9008")
+                    GlassCapsuleButton("系统", { onReboot("system") })
+                    GlassCapsuleButton("Recovery", { onReboot("recovery") })
+                    GlassCapsuleButton("Bootloader", { onReboot("bootloader") })
+                    GlassCapsuleButton("9008", { onReboot("9008") })
                 }
             }
-        }
-    }
-
-    /**
-     * v2 重启按钮 — 带按压缩放微交互。
-     * 移除了原 RowScopeReboot 死代码 (与 RebootChip 完全重复)。
-     */
-    @Composable
-    private fun RebootChip(label: String, onReboot: (String) -> Unit, target: String) {
-        val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-        val pressed by interaction.collectIsPressedAsState()
-        val scale by animateFloatAsState(
-            targetValue = if (pressed) 0.92f else 1f,
-            animationSpec = HyperOSMotion.cardPressSpring,
-            label = "rebootScale"
-        )
-        OutlinedButton(
-            onClick = { onReboot(target) },
-            shape = RoundedCornerShape(20.dp),
-            interactionSource = interaction,
-            modifier = Modifier.scale(scale),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
         }
     }
 

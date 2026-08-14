@@ -9,8 +9,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -50,14 +50,12 @@ fun LiquidGlassBox(
     val strokeColor = if (isDark) JFColors.GlassDarkStroke else JFColors.GlassLightStroke
     val shape = RoundedCornerShape(cornerRadius)
     val isPressed by interactionSource.collectIsPressedAsState()
-
     // 按压缩放 — 使用澎湃OS 4 softBounce 弹簧
     val scale by animateFloatAsState(
         targetValue = if (pressedScale && isPressed) 0.95f else 1f,
         animationSpec = HyperOSMotion.softBounce,
         label = "glassScale"
     )
-
     // 按压光效扩散
     val pressGlow by animateFloatAsState(
         targetValue = if (isPressed) 1f else 0f,
@@ -69,7 +67,6 @@ fun LiquidGlassBox(
         },
         label = "pressGlow"
     )
-
     Box(
         modifier = modifier
             .scale(scale)
@@ -82,10 +79,8 @@ fun LiquidGlassBox(
             .drawBehind {
                 // 外层柔和阴影 (模拟多层阴影)
                 drawRect(color = Color.Black.copy(alpha = 0.04f))
-
                 // 玻璃底色 — 半透明柔光
                 drawRect(color = baseTint.copy(alpha = tintAlpha))
-
                 // 顶部柔光高光带
                 drawRect(
                     brush = Brush.verticalGradient(
@@ -97,7 +92,6 @@ fun LiquidGlassBox(
                         endY = size.height * 0.4f
                     )
                 )
-
                 // 按压时局部光效扩散
                 if (pressGlow > 0f) {
                     drawRect(
@@ -174,7 +168,7 @@ fun LiquidGlassClickableCard(
         modifier = modifier.then(
             Modifier.clickable(
                 interactionSource = interactionSource,
-                indication = ripple(bounded = true),
+                indication = rememberRipple(bounded = true),
                 onClick = onClick
             )
         ),

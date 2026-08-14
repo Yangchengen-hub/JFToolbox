@@ -16,19 +16,14 @@ import androidx.compose.animation.core.spring
  */
 object HyperOSMotion {
     // ── 缓动曲线 — 澎湃OS 4 生命感动效 ──
-
     /** 进入主缓动: 快速启动 → 柔和减速到位 (emphasizedDecelerate) */
     val emphasizedDecelerate = CubicBezierEasing(0.0f, 0.0f, 0.0f, 1.0f)
-
     /** 退出主缓动: 缓慢启动 → 快速消失 (emphasizedAccelerate) */
     val emphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.7f, 0.0f)
-
     /** 标准缓动: 用于常规位移/缩放 */
     val standardEasing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
-
     /** 页面转场缓动 */
     val enterExitEasing = CubicBezierEasing(0.35f, 0.0f, 0.0f, 1.0f)
-
     /** 微交互缓动: 用于按钮/小元素 */
     val microEasing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
 
@@ -40,19 +35,16 @@ object HyperOSMotion {
     const val durationHero = 700       // 超长 Hero 动画 (首屏大动画)
 
     // ── 弹簧系统 — 澎湃OS 4 ──
-
     /** softBounce: 卡片按压 — 柔和弹性 (dampingRatio=0.7, stiffness=Medium) */
     val softBounce = spring<Float>(
         dampingRatio = 0.7f,
         stiffness = Spring.StiffnessMedium
     )
-
-    /** crispBounce: 按钮释放 — 清脆弹性 (dampingRatio=0.6, stiffness=MediumHigh) */
+    /** crispBounce: 按钮释放 — 清脆弹性 (dampingRatio=0.6, stiffness=Medium) */
     val crispBounce = spring<Float>(
         dampingRatio = 0.6f,
-        stiffness = Spring.StiffnessMediumHigh
+        stiffness = Spring.StiffnessMedium
     )
-
     /** floatSpring: 悬浮元素 — 轻柔漂浮 (dampingRatio=0.8, stiffness=Low) */
     val floatSpring = spring<Float>(
         dampingRatio = 0.8f,

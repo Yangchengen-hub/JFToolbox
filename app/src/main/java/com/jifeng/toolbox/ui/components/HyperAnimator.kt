@@ -5,7 +5,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -40,28 +40,31 @@ fun Modifier.hyperFlowingLight(
     lightColor: Color = JFColors.Brand
 ): Modifier = composed {
     if (!isActive) return@composed this
-
     val infiniteTransition = rememberInfiniteTransition(label = "flowingLight")
     val flowProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = tween(
-            durationMillis = 3000,
-            easing = LinearEasing
+        animationSpec = infiniteRepeatable(
+            tween(
+                durationMillis = 3000,
+                easing = LinearEasing
+            ),
+            RepeatMode.Restart
         ),
         label = "flowProgress"
     )
-
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.02f,
         targetValue = 0.08f,
-        animationSpec = tween(
-            durationMillis = 2000,
-            easing = HyperOSMotion.standardEasing
+        animationSpec = infiniteRepeatable(
+            tween(
+                durationMillis = 2000,
+                easing = HyperOSMotion.standardEasing
+            ),
+            RepeatMode.Reverse
         ),
         label = "glowAlpha"
     )
-
     this.drawBehind {
         // 顶部流动光带
         val lightX = size.width * flowProgress
@@ -98,13 +101,11 @@ fun Modifier.hyperPressGlow(
         ),
         label = "pressGlow"
     )
-
     val glowRadius by animateFloatAsState(
         targetValue = if (isPressed) 1f else 0f,
         animationSpec = HyperOSMotion.softBounce,
         label = "pressRadius"
     )
-
     this.drawBehind {
         if (glowAlpha > 0.001f) {
             drawCircle(
@@ -130,18 +131,19 @@ fun Modifier.hyperBreathingGlow(
     glowColor: Color = JFColors.Brand
 ): Modifier = composed {
     if (!isActive) return@composed this
-
     val infiniteTransition = rememberInfiniteTransition(label = "breathingGlow")
     val breathAlpha by infiniteTransition.animateFloat(
         initialValue = 0.03f,
         targetValue = 0.10f,
-        animationSpec = tween(
-            durationMillis = 2500,
-            easing = HyperOSMotion.standardEasing
+        animationSpec = infiniteRepeatable(
+            tween(
+                durationMillis = 2500,
+                easing = HyperOSMotion.standardEasing
+            ),
+            RepeatMode.Reverse
         ),
         label = "breathAlpha"
     )
-
     this.drawBehind {
         drawRect(
             color = glowColor.copy(alpha = breathAlpha)

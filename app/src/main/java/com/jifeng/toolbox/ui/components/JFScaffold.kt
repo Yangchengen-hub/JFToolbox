@@ -37,6 +37,9 @@ fun JFScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     JFTheme {
+        val isDark = MaterialTheme.colorScheme.background.red < 0.5f
+        val brandAlpha = if (isDark) 0.06f else 0.03f
+        val accentAlpha = if (isDark) 0.04f else 0.02f
         Surface(
             modifier = Modifier
                 .fillMaxSize()
@@ -48,10 +51,6 @@ fun JFScaffold(
                     .fillMaxSize()
                     .drawWithCache {
                         // 渐变网格 — 模拟壁纸色彩渗透感
-                        val isDark = MaterialTheme.colorScheme.background.red < 0.5f
-                        val brandAlpha = if (isDark) 0.06f else 0.03f
-                        val accentAlpha = if (isDark) 0.04f else 0.02f
-
                         // 顶部品牌色渐变
                         val topGradient = Brush.verticalGradient(
                             colors = listOf(
@@ -62,7 +61,6 @@ fun JFScaffold(
                             startY = 0f,
                             endY = size.height * 0.35f
                         )
-
                         // 右上角辅助色渐变 (紫色渗透)
                         val rightGlow = Brush.radialGradient(
                             colors = listOf(
@@ -72,7 +70,6 @@ fun JFScaffold(
                             center = Offset(size.width * 0.9f, size.height * 0.15f),
                             radius = size.width * 0.4f
                         )
-
                         // 左下角辅助色渐变 (蓝色渗透)
                         val leftGlow = Brush.radialGradient(
                             colors = listOf(
@@ -82,7 +79,6 @@ fun JFScaffold(
                             center = Offset(size.width * 0.1f, size.height * 0.85f),
                             radius = size.width * 0.35f
                         )
-
                         onDrawBehind {
                             drawRect(topGradient)
                             drawRect(rightGlow)

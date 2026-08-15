@@ -121,19 +121,106 @@ object FileViewer {
      * 列出 ZIP/APK/JAR 等压缩包的条目名。仅 ZIP 格式 (apk/jar/aar/war 同为 ZIP)。
      */
     fun listArchiveEntries(file: File): List<String> {
-        return try {
-            ZipFile(file).use { zf ->
-                zf.entries().toList().map { it.name }
-            }
-        } catch (e: Exception) {
-            emptyList()
+        val ext = file.extension.lowercase()
+        return when (ext) {
+            "zip", "apk", "jar", "aar", "war" -> try {
+                java.util.zip.ZipFile(file).use { zf ->
+                    zf.entries().asSequence().map { entry ->
+                        val size = if (entry.isDirectory) "[DIR]"
+                                   else formatSize(entry.size)
+                        "${entry.name}  ($size)"
+                    }.sorted().toList()
+                }
+            } catch (e: Exception) { listOf("Error: ${e.message}") }
+            "tar" -> listTarEntries(file)
+            "rar" -> try {
+                val head = ByteArray(8)
+                file.inputStream().use { it.read(head) }
+                if (head[0] == 0x52.toByte() && head[1] == 0x61.toByte() && head[2] == 0x72.toByte())
+                    listOf("(RAR 格式, 需要第三方库解析)") else listOf("(非 RAR 文件)")
+            } catch (e: Exception) { listOf("Error: ${e.message}") }
+            "7z" -> listOf("(7z 格式, 需要第三方库解析)")
+            "gz" -> listOf("(gzip 压缩文件)")
+            "bz2" -> listOf("(bzip2 压缩文件)")
+            "xz" -> listOf("(xz 压缩文件)")
+            else -> listOf("(不支持的压缩格式)")
         }
     }
 
-    /**
-     * 用 [PdfRenderer] 渲染首页为 Bitmap (API 21+)。
-     * @return 首页位图, 失败返回 null
-     */
+    /** 解析 APK 的 Manifest 信息 */
+    fun parseApkManifest(file: File): Map<String, String> {
+        val info = mutableMapOf<String, String>()
+        try {
+            val ctx = android.app.ActivityThread.currentApplication()?.applicationContext
+                ?: return mapOf("error" to "无法获取应用上下文")
+            val pm = ctx.packageManager
+            val archiveInfo = pm.getPackageArchiveInfo(file.absolutePath, 0)
+            if (archiveInfo != null) {
+                info["包名"] = archiveInfo.packageName ?: "未知"
+                info["版本名"] = archiveInfo.versionName ?: "未知"
+                info["版本号"] = archiveInfo.versionCode.toString()
+                info["目标SDK"] = archiveInfo.applicationInfo?.targetSdkVersion?.toString() ?: "未知"
+            }
+            val entries = listArchiveEntries(file)
+            info["文件数"] = entries.size.toString()
+            val dexCount = entries.count { it.endsWith(".dex") }
+            if (dexCount > 0) info["DEX文件数"] = dexCount.toString()
+            val libs = entries.filter { it.startsWith("lib/") && it.endsWith(".so") }
+            if (libs.isNotEmpty()) {
+                info["Native库"] = libs.map { it.split("/").last() }.distinct().joinToString(", ")
+            }
+        } catch (e: Exception) {
+            info["error"] = "解析失败: ${e.message}"
+        }
+        return info
+    }
+
+    /** 列出 TAR 文件内容 (未压缩 TAR) */
+    private fun listTarEntries(file: File): List<String> {
+        val entries = mutableListOf<String>()
+        try {
+            file.inputStream().use { input ->
+                val header = ByteArray(512)
+                var count = 0
+                while (input.read(header) == 512 && count < 500) {
+                    count++
+                    if (header.all { it == 0.toByte() }) break
+                    val name = String(header, 0, 100, Charsets.US_ASCII).trimEnd(0.toChar(), ' ')
+                    if (name.isBlank()) break
+                    val sizeStr = String(header, 124, 12, Charsets.US_ASCII).trimEnd(0.toChar(), ' ')
+                    val size = try { sizeStr.toLong(8) } catch (_: Exception) { 0L }
+                    val typeFlag = header[156].toInt().toChar()
+                    val typeStr = when (typeFlag) {
+                        '5' -> "[DIR]"
+                        '2' -> "[LINK]"
+                        '1' -> "[HARDLINK]"
+                        else -> formatSize(size)
+                    }
+                    entries.add("$name  ($typeStr)")
+                    val skipBytes = ((size + 511) / 512) * 512
+                    var remaining = skipBytes
+                    while (remaining > 0) {
+                        val skipped = input.skip(remaining)
+                        if (skipped <= 0) break
+                        remaining -= skipped
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            if (entries.isEmpty()) entries.add("Error: ${e.message}")
+        }
+        return entries.ifEmpty { listOf("(空 TAR 文件)") }
+    }
+
+    /** 格式化文件大小 */
+    private fun formatSize(bytes: Long): String = when {
+        bytes < 0 -> "0 B"
+        bytes < 1024 -> "$bytes B"
+        bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+        bytes < 1024L * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
+        else -> "${bytes / (1024L * 1024 * 1024)} GB"
+    }
+
     fun renderPdfFirstPage(file: File): Bitmap? {
         if (!file.exists()) return null
         val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)

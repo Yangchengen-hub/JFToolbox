@@ -159,7 +159,7 @@ private fun PermissionScreen(onProceed: () -> Unit) {
         ActivityResultContracts.RequestPermission()
     ) { permIndex++ }
 
-    // permIndex 变化时驱动请求下一个权限; 全部完成后跳转所有文件访问设置页
+    // permIndex 变化时驱动请求下一个权限; 全部完成后自动跳转主界面
     LaunchedEffect(permIndex) {
         when {
             permIndex in runtimePerms.indices -> {
@@ -205,6 +205,9 @@ private fun PermissionScreen(onProceed: () -> Unit) {
                         ctx.startActivity(intent)
                     } catch (_: Exception) {}
                 }
+                // 权限请求全部完成后, 延迟1.5秒自动跳转主界面
+                kotlinx.coroutines.delay(1500)
+                onProceed()
             }
         }
     }

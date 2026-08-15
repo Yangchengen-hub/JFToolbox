@@ -149,11 +149,12 @@ private fun WebBrowseTab(initialUrl: String? = null) {
                     modifier = Modifier.weight(1f), label = { Text("URL") }, singleLine = true)
                 Button(onClick = { loadTrigger++ }) { Text("打开") }
                 Button(onClick = {
-                    // 终端联动: 复制 URL 到剪贴板, 提示在终端 paste 打开
-                    val clip = ClipData.newPlainText("JF URL", url)
-                    clipboard.setPrimaryClip(clip)
-                    Toast.makeText(ctx, "已复制, 可在终端 paste 打开", Toast.LENGTH_SHORT).show()
-                }) { Text("终端联动") }
+                    // 终端联动: 直接跳转终端页面并自动执行命令
+                    val intent = Intent(ctx, TerminalComposeActivity::class.java).apply {
+                        putExtra("auto_command", url)
+                    }
+                    ctx.startActivity(intent)
+                }) { Text("终端运行") }
             }
         }
         Spacer(Modifier.height(12.dp))

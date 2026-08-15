@@ -6,12 +6,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * 极风工具箱 Typography v2 — 提升文字层级感。
- *
- * v2 改进:
- *  - 字号微调 (displayLarge 从 57→48, 适应移动端)
- *  - 增加 letterSpacing 优化中文排版
- *  - 增加 fontWeight 层级 (SemiBold 用于标题)
+ * 极风工具箱 Typography v4。
  */
 object JFTypography {
     val tokens = Typography(

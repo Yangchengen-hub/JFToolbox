@@ -1,7 +1,7 @@
 package com.jifeng.toolbox.ui.components
 
-import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,10 +15,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -28,101 +30,163 @@ import com.jifeng.toolbox.ui.theme.JFColors
 import com.jifeng.toolbox.ui.theme.HyperOSMotion
 
 /**
- * 柔光玻璃容器 v3 — 澎湃OS 4 设计语言。
+ * 柔光玻璃容器 v4 — 澎湃OS 4 柔光玻璃设计语言。
  *
- * v3 改进 (澎湃OS 4 柔光玻璃):
- *  - 卡片背景改为柔光玻璃材质: 半透明 + 强高斯模糊(48dp) + 边缘高光线条(1dp, 15%白)
- *  - 新增光效跟随: 按压时局部光效扩散
- *  - 阴影改为多层柔和阴影 (非 Material 默认)
- *  - 圆角加大(20dp)
+ * v4 核心改进:
+ *  - 折射层 (refraction): 模拟光线穿过玻璃时的折射偏移
+ *  - 反射高光 (specular highlight): 顶部边缘的薄亮线条
+ *  - 色散效果 (chromatic aberration): 边缘微弱彩虹偏移
+ *  - 边缘高光 (edge highlight): 上边缘更亮, 模拟真实玻璃顶部受光
+ *  - 非等圆角: 上略大下略小, 模拟重力感
+ *  - 环境自适应: 中性质感, 不绑定固定色相
+ *  - 透明度降低: 浅色70%, 深色50%, 更多壁纸透出
  */
 @Composable
 fun LiquidGlassBox(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 20.dp,
-    tintAlpha: Float = 0.85f,
     pressedScale: Boolean = false,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable () -> Unit
 ) {
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
-    val baseTint = if (isDark) JFColors.GlassDarkTint else JFColors.GlassLightTint
     val strokeColor = if (isDark) JFColors.GlassDarkStroke else JFColors.GlassLightStroke
-    val shape = RoundedCornerShape(cornerRadius)
     val isPressed by interactionSource.collectIsPressedAsState()
-    // 按压缩放 — 使用澎湃OS 4 softBounce 弹簧
+
+    // 非等圆角 — 上略大下略小模拟重力感
+    val topRadius = cornerRadius + 2.dp
+    val bottomRadius = cornerRadius - 2.dp
+    val shape = RoundedCornerShape(
+        topStart = topRadius,
+        topEnd = topRadius,
+        bottomEnd = bottomRadius,
+        bottomStart = bottomRadius
+    )
+
     val scale by animateFloatAsState(
-        targetValue = if (pressedScale && isPressed) 0.95f else 1f,
-        animationSpec = HyperOSMotion.softBounce,
+        targetValue = if (pressedScale && isPressed) 0.96f else 1f,
+        animationSpec = HyperOSMotion.glassPressSpring,
         label = "glassScale"
     )
-    // 按压光效扩散
+
     val pressGlow by animateFloatAsState(
         targetValue = if (isPressed) 1f else 0f,
-        animationSpec = HyperOSMotion.standardEasing.let {
-            androidx.compose.animation.core.tween(
-                durationMillis = HyperOSMotion.durationShort,
-                easing = it
-            )
-        },
+        animationSpec = tween(
+            durationMillis = HyperOSMotion.durationShort,
+            easing = HyperOSMotion.emphasizedDecelerate
+        ),
         label = "pressGlow"
     )
+
     Box(
         modifier = modifier
             .scale(scale)
             .graphicsLayer {
-                // 多层柔和阴影 — 替代 Material 默认阴影
-                shadowElevation = 0f
                 this.shape = shape
                 clip = true
             }
             .drawBehind {
-                // 外层柔和阴影 (模拟多层阴影)
-                drawRect(color = Color.Black.copy(alpha = 0.04f))
-                // 玻璃底色 — 半透明柔光
-                drawRect(color = baseTint.copy(alpha = tintAlpha))
-                // 顶部柔光高光带
-                drawRect(
+                val w = size.width
+                val h = size.height
+
+                // 第1层: 多层极柔和阴影
+                drawRoundRect(
+                    color = JFColors.ShadowOuter,
+                    cornerRadius = CornerRadius(bottomRadius.toPx()),
+                    size = Size(w + 8f, h + 8f),
+                    topLeft = Offset(-4f, -2f)
+                )
+                drawRoundRect(
+                    color = JFColors.ShadowMiddle,
+                    cornerRadius = CornerRadius(bottomRadius.toPx()),
+                    size = Size(w + 4f, h + 4f),
+                    topLeft = Offset(-2f, -1f)
+                )
+
+                // 第2层: 玻璃底色
+                val baseAlpha = if (isDark) 0.50f else 0.70f
+                val baseColor = if (isDark) Color(0xFF0E0E12) else Color.White
+                drawRoundRect(
+                    color = baseColor.copy(alpha = baseAlpha),
+                    cornerRadius = CornerRadius(topRadius.toPx())
+                )
+
+                // 第3层: 折射层
+                val refractionColor = if (isDark) JFColors.GlassRefractionDark else JFColors.GlassRefractionLight
+                drawRoundRect(
+                    color = refractionColor,
+                    cornerRadius = CornerRadius(topRadius.toPx())
+                )
+
+                // 第4层: 顶部反射高光 (specular)
+                drawRoundRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            JFColors.GlassSpecularHighlight,
+                            Color.Transparent
+                        ),
+                        startY = 0f,
+                        endY = h * 0.12f
+                    ),
+                    cornerRadius = CornerRadius(topRadius.toPx())
+                )
+
+                // 第5层: 顶部柔光带
+                drawRoundRect(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             JFColors.GlassHighlight,
                             Color.Transparent
                         ),
                         startY = 0f,
-                        endY = size.height * 0.4f
-                    )
+                        endY = h * 0.35f
+                    ),
+                    cornerRadius = CornerRadius(topRadius.toPx())
                 )
-                // 按压时局部光效扩散
+
+                // 第6层: 色散效果
+                drawRoundRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(JFColors.ChromaticAberrationR, Color.Transparent),
+                        startX = 0f,
+                        endX = w * 0.05f
+                    ),
+                    cornerRadius = CornerRadius(topRadius.toPx())
+                )
+                drawRoundRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(Color.Transparent, JFColors.ChromaticAberrationB),
+                        startX = w * 0.95f,
+                        endX = w
+                    ),
+                    cornerRadius = CornerRadius(topRadius.toPx())
+                )
+
+                // 第7层: 按压光效
                 if (pressGlow > 0f) {
-                    drawRect(
-                        color = Color.White.copy(
-                            alpha = pressGlow * (if (isDark) 0.03f else 0.06f)
-                        )
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = pressGlow * (if (isDark) 0.04f else 0.08f)),
+                        cornerRadius = CornerRadius(topRadius.toPx())
                     )
-                    // 中心径向光效
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = pressGlow * 0.08f),
+                                Color.White.copy(alpha = pressGlow * 0.10f),
                                 Color.Transparent
                             ),
-                            radius = size.minDimension * 0.6f
+                            radius = size.minDimension * 0.7f
                         ),
-                        center = androidx.compose.ui.geometry.Offset(
-                            size.width / 2f,
-                            size.height / 2f
-                        ),
-                        radius = size.minDimension * 0.6f
+                        center = Offset(w / 2f, h / 2f),
+                        radius = size.minDimension * 0.7f
                     )
                 }
             }
-            // 边缘高光线条 — 1dp, 15%白
             .border(
-                width = 1.dp,
+                width = 0.5.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        strokeColor.copy(alpha = if (isPressed) 0.9f else 0.6f),
-                        strokeColor.copy(alpha = 0.15f)
+                        strokeColor.copy(alpha = if (isPressed) 1.0f else 0.8f),
+                        strokeColor.copy(alpha = 0.2f)
                     )
                 ),
                 shape = shape
@@ -144,7 +208,6 @@ fun LiquidGlassCard(
     LiquidGlassBox(
         modifier = modifier,
         cornerRadius = cornerRadius,
-        tintAlpha = 0.9f,
         pressedScale = pressedScale,
         interactionSource = interactionSource
     ) {
@@ -154,7 +217,6 @@ fun LiquidGlassCard(
     }
 }
 
-/** 可点击的柔光玻璃卡片 (自动处理 pressed 状态)。 */
 @Composable
 fun LiquidGlassClickableCard(
     modifier: Modifier = Modifier,

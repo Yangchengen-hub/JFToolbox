@@ -1,8 +1,5 @@
 package com.jifeng.toolbox.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -23,12 +20,12 @@ import com.jifeng.toolbox.ui.theme.JFColors
 import com.jifeng.toolbox.ui.theme.JFTheme
 
 /**
- * 应用壳 v3 — 澎湃OS 4 柔光玻璃框架。
+ * 应用壳 v4 — 环境自适应柔光玻璃框架。
  *
- * v3 改进:
- *  - 背景层加入微妙的渐变网格 (模拟壁纸色彩渗透感)
- *  - 使用小米蓝渐变色系作为氛围光
- *  - 多层径向渐变模拟壁纸色彩渗透
+ * v4 改进:
+ *  - 移除固定蓝色渐变, 改为极微弱的中性环境光
+ *  - 使用多层径向渐变模拟壁纸色彩自然渗透
+ *  - 透明度更低, 让背景色彩更好地透出
  */
 @Composable
 fun JFScaffold(
@@ -38,8 +35,6 @@ fun JFScaffold(
 ) {
     JFTheme {
         val isDark = MaterialTheme.colorScheme.background.red < 0.5f
-        val brandAlpha = if (isDark) 0.06f else 0.03f
-        val accentAlpha = if (isDark) 0.04f else 0.02f
         Surface(
             modifier = Modifier
                 .fillMaxSize()
@@ -50,39 +45,44 @@ fun JFScaffold(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawWithCache {
-                        // 渐变网格 — 模拟壁纸色彩渗透感
-                        // 顶部品牌色渐变
-                        val topGradient = Brush.verticalGradient(
+                        val ambientAlpha = if (isDark) 0.03f else 0.015f
+                        // 顶部微弱氛围光
+                        val topGlow = Brush.radialGradient(
                             colors = listOf(
-                                JFColors.Brand.copy(alpha = brandAlpha),
-                                Color.Transparent,
+                                Color.White.copy(alpha = if (isDark) 0.02f else 0.04f),
                                 Color.Transparent
                             ),
-                            startY = 0f,
-                            endY = size.height * 0.35f
+                            center = Offset(size.width * 0.5f, -size.height * 0.1f),
+                            radius = size.width * 0.8f
                         )
-                        // 右上角辅助色渐变 (紫色渗透)
-                        val rightGlow = Brush.radialGradient(
+                        // 右下角微弱暖色渗透
+                        val warmGlow = Brush.radialGradient(
                             colors = listOf(
-                                JFColors.AiSensePurple.copy(alpha = accentAlpha),
+                                JFColors.AmbientTintWarm.let { 
+                                    if (isDark) Color(0xFF2A2010).copy(alpha = ambientAlpha) 
+                                    else Color(0xFFFFF0D0).copy(alpha = ambientAlpha)
+                                },
                                 Color.Transparent
                             ),
-                            center = Offset(size.width * 0.9f, size.height * 0.15f),
+                            center = Offset(size.width * 0.9f, size.height * 0.9f),
+                            radius = size.width * 0.5f
+                        )
+                        // 左上角微弱冷色渗透
+                        val coolGlow = Brush.radialGradient(
+                            colors = listOf(
+                                JFColors.AmbientTintCool.let {
+                                    if (isDark) Color(0xFF101828).copy(alpha = ambientAlpha)
+                                    else Color(0xFFD0E8FF).copy(alpha = ambientAlpha)
+                                },
+                                Color.Transparent
+                            ),
+                            center = Offset(size.width * 0.1f, size.height * 0.1f),
                             radius = size.width * 0.4f
                         )
-                        // 左下角辅助色渐变 (蓝色渗透)
-                        val leftGlow = Brush.radialGradient(
-                            colors = listOf(
-                                JFColors.AiSenseBlue.copy(alpha = accentAlpha),
-                                Color.Transparent
-                            ),
-                            center = Offset(size.width * 0.1f, size.height * 0.85f),
-                            radius = size.width * 0.35f
-                        )
                         onDrawBehind {
-                            drawRect(topGradient)
-                            drawRect(rightGlow)
-                            drawRect(leftGlow)
+                            drawRect(topGlow)
+                            drawRect(warmGlow)
+                            drawRect(coolGlow)
                         }
                     }
             ) {

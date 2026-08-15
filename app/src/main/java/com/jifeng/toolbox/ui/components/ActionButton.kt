@@ -1,13 +1,12 @@
 package com.jifeng.toolbox.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -28,12 +27,7 @@ import com.jifeng.toolbox.ui.theme.JFColors
 import com.jifeng.toolbox.ui.theme.HyperOSMotion
 
 /**
- * 玻璃瓷砖按钮 v3 — 澎湃OS 4 柔光玻璃风格。
- *
- * v3 改进:
- *  - 按钮改为半透明玻璃瓷砖风格
- *  - 活跃态: 柔和内发光 (品牌色 30% 透明度填充)
- *  - 按压: 缩放 0.95 + 光效收缩
+ * 玻璃瓷砖按钮 v4 — 柔光玻璃风格。
  */
 @Composable
 fun ActionButton(
@@ -47,26 +41,22 @@ fun ActionButton(
     val pressed by interaction.collectIsPressedAsState()
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
 
-    // 按压缩放 — crispBounce 弹簧
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.95f else 1f,
         animationSpec = HyperOSMotion.crispBounce,
         label = "btnScale"
     )
 
-    // 光效收缩
     val glowAlpha by animateFloatAsState(
         targetValue = when {
             pressed -> 0f
-            isActive -> 0.3f
+            isActive -> 0.2f
             else -> 0f
         },
-        animationSpec = HyperOSMotion.standardEasing.let {
-            androidx.compose.animation.core.tween(
-                durationMillis = HyperOSMotion.durationShort,
-                easing = it
-            )
-        },
+        animationSpec = tween(
+            durationMillis = HyperOSMotion.durationShort,
+            easing = HyperOSMotion.standardEasing
+        ),
         label = "btnGlow"
     )
 
@@ -79,37 +69,32 @@ fun ActionButton(
             .clip(shape)
             .drawBehind {
                 // 玻璃底色
-                val baseColor = if (isDark) {
-                    JFColors.GlassDarkTint.copy(alpha = 0.65f)
-                } else {
-                    JFColors.GlassLightTint.copy(alpha = 0.7f)
-                }
-                drawRect(color = baseColor)
+                val baseAlpha = if (isDark) 0.50f else 0.70f
+                val baseColor = if (isDark) Color(0xFF0E0E12) else Color.White
+                drawRect(color = baseColor.copy(alpha = baseAlpha))
 
-                // 顶部柔光
+                // 顶部反射高光
                 drawRect(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.06f else 0.2f),
+                            JFColors.GlassSpecularHighlight,
                             Color.Transparent
                         ),
                         startY = 0f,
-                        endY = size.height * 0.4f
+                        endY = size.height * 0.2f
                     )
                 )
 
-                // 活跃态内发光 — 品牌色 30% 透明度
+                // 活跃态内发光
                 if (glowAlpha > 0f) {
-                    drawRect(
-                        color = JFColors.Brand.copy(alpha = glowAlpha)
-                    )
+                    drawRect(color = JFColors.Brand.copy(alpha = glowAlpha))
                 }
             }
             .border(
-                width = 1.dp,
+                width = 0.5.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        JFColors.GlassLightStroke.copy(alpha = 0.5f),
+                        JFColors.GlassLightStroke.copy(alpha = 0.6f),
                         JFColors.GlassLightStroke.copy(alpha = 0.15f)
                     )
                 ),
@@ -134,7 +119,7 @@ fun ActionButton(
 }
 
 /**
- * 玻璃胶囊按钮 — 用于重启按钮等小型操作。
+ * 玻璃胶囊按钮 — 小型操作。
  */
 @Composable
 fun GlassCapsuleButton(
@@ -161,36 +146,31 @@ fun GlassCapsuleButton(
             .scale(scale)
             .clip(shape)
             .drawBehind {
-                val baseColor = if (isDark) {
-                    JFColors.GlassDarkTint.copy(alpha = 0.5f)
-                } else {
-                    JFColors.GlassLightTint.copy(alpha = 0.6f)
-                }
-                drawRect(color = baseColor)
+                val baseAlpha = if (isDark) 0.45f else 0.60f
+                val baseColor = if (isDark) Color(0xFF0E0E12) else Color.White
+                drawRect(color = baseColor.copy(alpha = baseAlpha))
 
                 // 顶部微光
                 drawRect(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.04f else 0.15f),
+                            JFColors.GlassSpecularHighlight,
                             Color.Transparent
                         ),
                         startY = 0f,
-                        endY = size.height * 0.5f
+                        endY = size.height * 0.4f
                     )
                 )
 
                 if (pressed) {
-                    drawRect(
-                        color = JFColors.Brand.copy(alpha = 0.15f)
-                    )
+                    drawRect(color = JFColors.Brand.copy(alpha = 0.12f))
                 }
             }
             .border(
                 width = 0.5.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        JFColors.GlassLightStroke.copy(alpha = 0.4f),
+                        JFColors.GlassLightStroke.copy(alpha = 0.5f),
                         JFColors.GlassLightStroke.copy(alpha = 0.1f)
                     )
                 ),

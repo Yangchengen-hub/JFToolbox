@@ -11,17 +11,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,8 +52,22 @@ private fun BackupScreen() {
     val logs = remember { mutableStateListOf<String>() }
     var progress by remember { mutableStateOf<Float?>(null) }
     var progressLabel by remember { mutableStateOf<String?>(null) }
-    var includeLarge by remember { mutableStateOf(false) }
     var isRunning by remember { mutableStateOf(false) }
+    var allPartitions by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // 用户选择的分区
+    val selectedPartitions = remember { mutableStateListOf<String>() }
+
+    // 扫描可用分区
+    LaunchedEffect(Unit) {
+        if (AdbManager.isConnected) {
+            val serial = AdbManager.currentSerial ?: ""
+            allPartitions = BackupManager.scanPartitions(serial)
+            // 默认选中重要分区
+            selectedPartitions.clear()
+            selectedPartitions.addAll(allPartitions.filter { it in BackupManager.DEFAULT_PARTITIONS })
+        }
+    }
 
     // 订阅备份状态
     LaunchedEffect(Unit) {
@@ -58,7 +76,7 @@ private fun BackupScreen() {
                 is BackupManager.BackupState.Idle -> {}
                 is BackupManager.BackupState.Running -> {
                     isRunning = true
-                    progressLabel = "[$state.index/$state.total] ${state.current} · ${state.phase}"
+                    progressLabel = "[${state.index}/${state.total}] ${state.current} · ${state.phase}"
                     progress = if (state.total > 0) state.index.toFloat() / state.total else 0f
                 }
                 is BackupManager.BackupState.Done -> {
@@ -66,8 +84,7 @@ private fun BackupScreen() {
                     progress = 1f
                     progressLabel = "备份完成"
                     logs.add("✓ 备份完成: ${state.partitionCount} 个分区")
-                    logs.add("  A 包: ${state.packA}")
-                    state.packB?.let { logs.add("  B 包: $it") }
+                    logs.add("  文件: ${state.packA}")
                 }
                 is BackupManager.BackupState.Failed -> {
                     isRunning = false
@@ -84,42 +101,90 @@ private fun BackupScreen() {
             Text("一键备份分区", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            Text("Root 环境下提取所有分区 (boot, system, vendor 等), 打包为 ZIP。",
+            Text("选择要备份的分区, 默认备份重要分区 (boot/recovery 等)。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(16.dp))
 
             LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("前置: 被控端需 Root (Magisk / KernelSU / APatch)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("A 包: boot/dtbo/vbmeta/recovery 等关键分区",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("B 包: system/vendor/product 等大分区 (可选, 耗时较长)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // 全选/取消全选
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("选择备份分区 (${selectedPartitions.size}/${allPartitions.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold)
+                        Row {
+                            TextButton(onClick = {
+                                selectedPartitions.clear()
+                                selectedPartitions.addAll(allPartitions)
+                            }) { Text("全选") }
+                            TextButton(onClick = {
+                                selectedPartitions.clear()
+                            }) { Text("取消全选") }
+                            TextButton(onClick = {
+                                selectedPartitions.clear()
+                                selectedPartitions.addAll(allPartitions.filter { it in BackupManager.DEFAULT_PARTITIONS })
+                            }) { Text("默认") }
+                        }
+                    }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = includeLarge, onCheckedChange = { includeLarge = it })
-                        Text("同时备份大分区 (B 包)", style = MaterialTheme.typography.bodyMedium)
+                    // 分区列表
+                    if (allPartitions.isEmpty()) {
+                        Text("未检测到可用分区, 请确认已连接设备且具有 Root 权限",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error)
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().height(300.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            items(allPartitions) { part ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Checkbox(
+                                        checked = part in selectedPartitions,
+                                        onCheckedChange = { checked ->
+                                            if (checked) selectedPartitions.add(part)
+                                            else selectedPartitions.remove(part)
+                                        }
+                                    )
+                                    Text(
+                                        part,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (part in BackupManager.DEFAULT_PARTITIONS)
+                                            FontWeight.Bold else FontWeight.Normal
+                                    )
+                                    if (part in BackupManager.DEFAULT_PARTITIONS) {
+                                        Text(" (默认)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Button(
                         onClick = {
                             val serial = AdbManager.currentSerial ?: ""
                             logs.clear()
-                            logs.add("开始备份: serial=$serial, includeLarge=$includeLarge")
+                            logs.add("开始备份: serial=$serial, 分区数=${selectedPartitions.size}")
                             val dir = ctx.getExternalFilesDir(null)?.absolutePath ?: ctx.filesDir.absolutePath
                             scope.launch {
-                                BackupManager.backupAll(serial, dir, includeLarge)
+                                BackupManager.backup(serial, dir, selectedPartitions.toSet())
                             }
                         },
-                        enabled = !isRunning && AdbManager.isConnected,
+                        enabled = !isRunning && AdbManager.isConnected && selectedPartitions.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth().height(50.dp)
                     ) {
-                        Text(if (isRunning) "备份中..." else "开始备份全部分区", fontWeight = FontWeight.Bold)
+                        Text(if (isRunning) "备份中..." else "开始备份 (${selectedPartitions.size} 个分区)",
+                            fontWeight = FontWeight.Bold)
                     }
 
                     if (!AdbManager.isConnected) {

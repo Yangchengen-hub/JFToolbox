@@ -46,14 +46,12 @@ import androidx.compose.material.icons.filled.Flaky
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.ScreenShare
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Web
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -96,8 +94,6 @@ import com.jifeng.toolbox.ui.firmware.FirmwareComposeActivity
 import com.jifeng.toolbox.ui.installer.InstallerComposeActivity
 import com.jifeng.toolbox.ui.terminal.TerminalComposeActivity
 import com.jifeng.toolbox.ui.tweak.TweakComposeActivity
-import com.jifeng.toolbox.ui.wireless.WirelessDebugComposeActivity
-import com.jifeng.toolbox.ui.screenmirror.ScreenMirrorComposeActivity
 import com.jifeng.toolbox.ui.theme.JFColors
 import com.jifeng.toolbox.ui.theme.HyperOSMotion
 import com.jifeng.toolbox.usb.UsbDeviceManager
@@ -418,8 +414,6 @@ class MainComposeActivity : ComponentActivity() {
         Tile("9008 救砖", Icons.Default.Build, FlashComposeActivity::class.java),
         Tile("分区表编辑", Icons.Default.Storage, PartitionEditorComposeActivity::class.java),
         Tile("超级终端", Icons.Default.Terminal, TerminalComposeActivity::class.java),
-        Tile("无线调试", Icons.Default.Wifi, WirelessDebugComposeActivity::class.java),
-        Tile("屏幕远程", Icons.Default.ScreenShare, ScreenMirrorComposeActivity::class.java),
         Tile("全能下载器", Icons.Default.CloudDownload, DownloaderComposeActivity::class.java),
         Tile("固件下载", Icons.Default.Download, FirmwareComposeActivity::class.java),
         Tile("全能安装器", Icons.Default.Apps, InstallerComposeActivity::class.java),
@@ -430,7 +424,7 @@ class MainComposeActivity : ComponentActivity() {
         Tile("加密工具", Icons.Default.EnhancedEncryption, CryptoComposeActivity::class.java),
         Tile("内置浏览器", Icons.Default.Web, BrowserComposeActivity::class.java),
         Tile("Shell 权限", Icons.Default.VerifiedUser, TerminalComposeActivity::class.java),
-        Tile("USB 状态", Icons.Default.Usb, WirelessDebugComposeActivity::class.java),
+        Tile("USB 状态", Icons.Default.Usb, TerminalComposeActivity::class.java),
         Tile("关于", Icons.Default.Info, AboutComposeActivity::class.java)
     )
 }

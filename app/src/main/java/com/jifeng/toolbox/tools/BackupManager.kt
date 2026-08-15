@@ -16,30 +16,31 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
- * 分区备份管理器 —— Root 环境下通过 dd 提取分区镜像并打包为 ZIP。
+ * 分区备份管理器 v2 —— 支持用户选择备份分区。
  *
- * 备份策略:
- * - 读取 /dev/block/by-name 获取全部分区节点
- * - 对每个分区执行 `su -c dd if=/dev/block/by-name/X bs=8M | gzip > /sdcard/JFToolbox/backup/X.img.gz`
- * - 将 boot/dtbo/vbmeta 等关键分区打包为 backup_a.zip
- * - 将 system/vendor/product 等大分区打包为 backup_b.zip
- *
- * 前置: 被控设备需 Root (Magisk / KernelSU / APatch)。
+ * v2 改进:
+ * - 默认备份重要分区 (boot, system, data, recovery 等)
+ * - 用户可勾选其他分区
+ * - 提供全选/取消全选功能
  */
 object BackupManager {
 
     private const val TAG = "BackupManager"
     private const val REMOTE_DIR = "/sdcard/JFToolbox/backup"
 
-    /** 关键分区 (小体积, 打包到 A 包)。 */
-    private val CRITICAL_PARTITIONS = setOf(
-        "boot", "init_boot", "vendor_boot", "dtbo", "vbmeta", "vbmeta_system",
-        "vbmeta_vendor", "recovery", "super", "modem"
+    /** 默认备份的重要分区 */
+    val DEFAULT_PARTITIONS = setOf(
+        "boot", "init_boot", "vendor_boot", "dtbo", "vbmeta",
+        "vbmeta_system", "vbmeta_vendor", "recovery"
     )
 
-    /** 大分区 (打包到 B 包, 可选)。 */
-    private val LARGE_PARTITIONS = setOf(
-        "system", "vendor", "product", "system_ext", "odm", "userdata", "cache"
+    /** 可选的大分区 */
+    val OPTIONAL_PARTITIONS = setOf(
+        "system", "vendor", "product", "system_ext", "odm",
+        "userdata", "cache", "modem", "super", "persist",
+        "dsp", "bluetooth", "wifi", "tz", "hyp", "keymaster",
+        "sec", "frp", "misc", "logo", "spmfw", "scp1", "scp2",
+        "lk", "preloader", "tee1", "tee2", "sspm1", "sspm2"
     )
 
     sealed class BackupState {
@@ -52,16 +53,30 @@ object BackupManager {
     private val _state = MutableStateFlow<BackupState>(BackupState.Idle)
     val state: StateFlow<BackupState> = _state
 
+    /** 远程可用分区列表 */
+    private val _availablePartitions = MutableStateFlow<List<String>>(emptyList())
+    val availablePartitions: StateFlow<List<String>> = _availablePartitions
+
+    /** 扫描远程可用分区 */
+    suspend fun scanPartitions(serial: String): List<String> = withContext(Dispatchers.IO) {
+        val adb = AdbManager
+        if (!adb.isConnected) return@withContext emptyList()
+        val byName = adb.shell(serial, "ls /dev/block/by-name 2>/dev/null").orEmpty()
+        val partitions = byName.lines().map { it.trim() }.filter { it.isNotBlank() }
+        _availablePartitions.value = partitions
+        partitions
+    }
+
     /**
-     * 执行全量分区备份。
+     * 执行分区备份。
      * @param serial 设备序列号
      * @param localDir 本地保存目录
-     * @param includeLarge 是否备份大分区 (system/vendor 等, 耗时较长)
+     * @param selectedPartitions 用户选择的分区列表 (为空则使用默认)
      */
-    suspend fun backupAll(
+    suspend fun backup(
         serial: String,
         localDir: String,
-        includeLarge: Boolean = false
+        selectedPartitions: Set<String> = emptySet()
     ): Boolean = withContext(Dispatchers.IO) {
         val adb = AdbManager
         if (!adb.isConnected) {
@@ -69,7 +84,6 @@ object BackupManager {
             return@withContext false
         }
 
-        // Root 检测
         val root = RootDetector.detect(serial)
         if (!root.hasRoot) {
             _state.value = BackupState.Failed("被控设备无 Root, 无法 dd 分区")
@@ -77,7 +91,6 @@ object BackupManager {
         }
         val suPrefix = root.manager.suPrefix
 
-        // 创建远程目录
         adb.shell(serial, "mkdir -p $REMOTE_DIR")
 
         // 读取分区列表
@@ -88,79 +101,60 @@ object BackupManager {
             return@withContext false
         }
 
-        Logger.i(TAG, "发现 ${allPartitions.size} 个分区, Root=${root.manager.displayName}")
-
-        // 筛选要备份的分区
-        val critical = allPartitions.filter { it in CRITICAL_PARTITIONS }
-        val large = if (includeLarge) allPartitions.filter { it in LARGE_PARTITIONS } else emptyList()
-        val toBackup = (critical + large).distinct()
+        // 确定要备份的分区
+        val toBackup = if (selectedPartitions.isNotEmpty()) {
+            allPartitions.filter { it in selectedPartitions }
+        } else {
+            allPartitions.filter { it in DEFAULT_PARTITIONS }
+        }
 
         if (toBackup.isEmpty()) {
-            _state.value = BackupState.Failed("未找到可备份的关键分区")
+            _state.value = BackupState.Failed("未找到可备份的分区")
             return@withContext false
         }
 
+        Logger.i(TAG, "发现 ${allPartitions.size} 个分区, 将备份 ${toBackup.size} 个")
+
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val total = toBackup.size
-        var idx = 0
         var failCount = 0
 
-        for (part in toBackup) {
-            idx++
-            _state.value = BackupState.Running(part, idx, total, "dd 提取中")
+        for ((idx, part) in toBackup.withIndex()) {
+            _state.value = BackupState.Running(part, idx + 1, total, "dd 提取中")
 
             val remoteGz = "$REMOTE_DIR/${part}.img.gz"
-            // dd if=... | gzip > ...  (通过 su 执行)
             val ddCmd = "$suPrefix 'dd if=/dev/block/by-name/$part bs=8M 2>/dev/null | gzip > $remoteGz'"
-            val result = adb.shell(serial, ddCmd)
+            adb.shell(serial, ddCmd)
 
-            // 检查文件是否生成
             val sizeCheck = adb.shell(serial, "ls -la $remoteGz 2>/dev/null").orEmpty()
             if (sizeCheck.isBlank() || sizeCheck.contains("No such file")) {
-                Logger.e(TAG, "分区 $part 备份失败 (文件未生成)")
+                Logger.e(TAG, "分区 $part 备份失败")
                 failCount++
                 continue
             }
-            Logger.i(TAG, "[$idx/$total] $part → $remoteGz ✓")
+            Logger.i(TAG, "[${idx + 1}/$total] $part → $remoteGz ✓")
         }
 
-        // 拉取到本地并打包
         _state.value = BackupState.Running("打包", total, total, "拉取并打包 ZIP")
 
         val localBackupDir = File(localDir, "backup_$timestamp").apply { mkdirs() }
-        val packA = File(localBackupDir, "backup_a.zip")
-        val packB = if (includeLarge) File(localBackupDir, "backup_b.zip") else null
+        val packA = File(localBackupDir, "backup.zip")
 
-        // A 包: 关键分区
-        var aCount = 0
+        var count = 0
         ZipOutputStream(packA.outputStream()).use { zos ->
-            for (part in critical) {
+            for (part in toBackup) {
                 val remoteGz = "$REMOTE_DIR/${part}.img.gz"
-                if (pullAndZip(adb, serial, remoteGz, "${part}.img.gz", zos)) aCount++
+                if (pullAndZip(adb, serial, remoteGz, "${part}.img.gz", zos)) count++
             }
         }
 
-        // B 包: 大分区
-        var bCount = 0
-        if (packB != null) {
-            ZipOutputStream(packB.outputStream()).use { zos ->
-                for (part in large) {
-                    val remoteGz = "$REMOTE_DIR/${part}.img.gz"
-                    if (pullAndZip(adb, serial, remoteGz, "${part}.img.gz", zos)) bCount++
-                }
-            }
-        }
-
-        // 清理远程临时文件
         adb.shell(serial, "rm -f $REMOTE_DIR/*.img.gz 2>/dev/null")
 
-        val totalBacked = aCount + bCount
-        Logger.i(TAG, "备份完成: A包=$aCount B包=$bCount 失败=$failCount")
-        _state.value = BackupState.Done(packA.absolutePath, packB?.absolutePath, totalBacked)
+        Logger.i(TAG, "备份完成: $count 个分区, 失败 $failCount")
+        _state.value = BackupState.Done(packA.absolutePath, null, count)
         failCount == 0
     }
 
-    /** 从设备拉取单个文件并写入 ZIP。 */
     private fun pullAndZip(
         adb: AdbManager,
         serial: String,
@@ -168,7 +162,6 @@ object BackupManager {
         entryName: String,
         zos: ZipOutputStream
     ): Boolean {
-        // 拉到临时文件
         val tmp = File.createTempFile("jfbk_", ".tmp")
         return try {
             if (!adb.pull(serial, remotePath, tmp.absolutePath)) {

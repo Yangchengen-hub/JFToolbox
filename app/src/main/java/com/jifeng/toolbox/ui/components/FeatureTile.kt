@@ -31,12 +31,12 @@ import com.jifeng.toolbox.ui.theme.HyperOSMotion
 import com.jifeng.toolbox.ui.theme.JFColors
 
 /**
- * 功能卡片 v3 — 澎湃OS 4 柔光玻璃风格。
+ * 功能卡片 v4 — 柔光玻璃风格。
  *
- * v3 改进:
- *  - 功能入口改为 2.5D 图标效果 (多层阴影 + 微视差)
- *  - 图标背景改为柔光玻璃圆形
- *  - 按压时图标微缩放 + 标签弹性动画
+ * v4 改进:
+ *  - 图标背景改为更透明的柔光圆形
+ *  - 按压时整体微缩放 + 图标弹性反馈
+ *  - 去除固定蓝色底部渐变
  */
 @Composable
 fun FeatureTile(
@@ -48,28 +48,17 @@ fun FeatureTile(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
 
-    // 整体缩放 — softBounce 弹簧
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.95f else 1f,
         animationSpec = HyperOSMotion.softBounce,
         label = "tileScale"
     )
-
-    // 图标缩放 — crispBounce 弹性
     val iconScale by animateFloatAsState(
         targetValue = if (pressed) 0.88f else 1f,
         animationSpec = HyperOSMotion.crispBounce,
         label = "iconScale"
     )
 
-    // 图标 2.5D 视差位移
-    val iconOffsetY by animateFloatAsState(
-        targetValue = if (pressed) 2f else 0f,
-        animationSpec = HyperOSMotion.floatSpring,
-        label = "iconParallax"
-    )
-
-    // 标签弹性 — 按压时微缩放
     val labelScale by animateFloatAsState(
         targetValue = if (pressed) 0.92f else 1f,
         animationSpec = HyperOSMotion.softBounce,
@@ -89,69 +78,32 @@ fun FeatureTile(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .padding(vertical = 4.dp)
-                .drawBehind {
-                    // 底部 vignette — 蓝色系渐变
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                primary.copy(alpha = 0.03f)
-                            ),
-                            startY = size.height * 0.5f,
-                            endY = size.height
-                        )
-                    )
-                }
+            modifier = Modifier.padding(vertical = 4.dp)
         ) {
-            // 2.5D 图标容器 — 多层阴影 + 柔光玻璃圆形背景
+            // 图标容器 — 柔光玻璃圆形
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(52.dp)
                     .scale(iconScale)
-                    .drawBehind {
-                        // 多层柔和阴影 — 2.5D 效果
-                        // 外层大阴影
-                        drawCircle(
-                            color = Color.Black.copy(alpha = 0.06f),
-                            radius = this.size.minDimension / 2f + 6f
-                        )
-                        // 中层阴影
-                        drawCircle(
-                            color = Color.Black.copy(alpha = 0.04f),
-                            radius = this.size.minDimension / 2f + 3f
-                        )
-                    }
                     .clip(CircleShape)
                     .background(
                         brush = Brush.linearGradient(
                             colors = listOf(
-                                primaryContainer.copy(alpha = 0.8f),
-                                primaryContainer.copy(alpha = 0.5f)
+                                primaryContainer.copy(alpha = 0.6f),
+                                primaryContainer.copy(alpha = 0.3f)
                             )
                         )
-                    ),
+                    )
             ) {
-                // 图标带视差
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
                     tint = onContainerColor,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .drawBehind {
-                            // 图标底部微光
-                            drawCircle(
-                                color = Color.White.copy(alpha = 0.08f),
-                                radius = size.minDimension * 0.6f
-                            )
-                        }
+                    modifier = Modifier.size(32.dp)
                 )
             }
 
-            // 标签 — 弹性缩放动画
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,

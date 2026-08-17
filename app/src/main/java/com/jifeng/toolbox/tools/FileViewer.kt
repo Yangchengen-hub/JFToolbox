@@ -148,11 +148,10 @@ object FileViewer {
     }
 
     /** 解析 APK 的 Manifest 信息 */
-    fun parseApkManifest(file: File): Map<String, String> {
+    fun parseApkManifest(file: File, context: android.content.Context): Map<String, String> {
         val info = mutableMapOf<String, String>()
         try {
-            val ctx = android.app.ActivityThread.currentApplication()?.applicationContext
-                ?: return mapOf("error" to "无法获取应用上下文")
+            val ctx = context.applicationContext
             val pm = ctx.packageManager
             val archiveInfo = pm.getPackageArchiveInfo(file.absolutePath, 0)
             if (archiveInfo != null) {

@@ -1,44 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  极风工具箱 启动图标前景
-  小米风格: 圆形 + 极简 + 现代感
-  元素: 中心白色圆 + 蓝色闪电(代表工具箱/能量) + 右下角白色齿轮(代表系统/设置)
-  安全区域: 内容限制在中心 72x72 (viewport 18~90), 中心点 (54,54)
-  齿轮半重叠于主圆右下角, 占图标约 25%
--->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-
-    <!-- ===== 主图标背景: 白色圆形 (小米风格极简纯色, 中心 54,54, 半径 28) ===== -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M54,54 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0"/>
-
-    <!-- ===== 闪电 (蓝色 #1976D2, 居中于白色圆内, 经典 Z 字形 lightning bolt) ===== -->
-    <path android:fillColor="#1976D2"
-        android:pathData="M56,32 L40,58 L50,58 L48,78 L68,50 L56,50 Z"/>
-
-    <!-- ===== 齿轮 (右下角, 8 齿, 半重叠于主圆右下角, 中心 74,74) ===== -->
-    <!-- 齿轮主体 (白色圆, r=10) -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M74,74 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0"/>
-
-    <!-- 4 个主方向齿牙 (0°, 90°, 180°, 270°) - 矩形 3x4 -->
-    <path android:fillColor="#FFFFFF" android:pathData="M72.5,60 h3 v4 h-3 z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M72.5,84 h3 v4 h-3 z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M60,72.5 h4 v3 h-4 z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M84,72.5 h4 v3 h-4 z"/>
-
-    <!-- 4 个对角齿牙 (45°, 135°, 225°, 315°) - 整体旋转 45° -->
-    <group android:rotation="45" android:pivotX="74" android:pivotY="74">
-        <path android:fillColor="#FFFFFF" android:pathData="M72.5,60 h3 v4 h-3 z"/>
-        <path android:fillColor="#FFFFFF" android:pathData="M72.5,84 h3 v4 h-3 z"/>
-        <path android:fillColor="#FFFFFF" android:pathData="M60,72.5 h4 v3 h-4 z"/>
-        <path android:fillColor="#FFFFFF" android:pathData="M84,72.5 h4 v3 h-4 z"/>
-    </group>
-
-    <!-- 齿轮中心轴孔 (蓝色 #1976D2, r=4, 形成齿轮中心孔效果) -->
-    <path android:fillColor="#1976D2"
-        android:pathData="M74,74 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
-
-</vector>
+<!-- 液态玻璃风格启动图标前景 — 猫娘图片 -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_foreground_png"
+    android:gravity="center" />

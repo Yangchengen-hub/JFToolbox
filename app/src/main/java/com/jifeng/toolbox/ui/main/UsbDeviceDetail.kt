@@ -1,6 +1,8 @@
 package com.jifeng.toolbox.ui.main
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,16 +44,16 @@ fun UsbDeviceDetailCard(
     usbManager: UsbDeviceManager,
     modifier: Modifier = Modifier
 ) {
-    val devices = usbManager.discoveredDevices.collectAsState(initial = emptyList()).value
-    val state = usbManager.state.collectAsState(initial = UsbDeviceManager.State.DISCONNECTED).value
-    val attached = usbManager.attachedDevice.collectAsState(initial = null).value
+    val devices by usbManager.discoveredDevices.collectAsState(initial = emptyList())
+    val state by usbManager.state.collectAsState(initial = UsbDeviceManager.State.DISCONNECTED)
+    val attached by usbManager.attachedDevice.collectAsState(initial = null)
 
     LiquidGlassCard(modifier = modifier.fillMaxWidth(), padding = 16.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // USB 图标
-                androidx.compose.foundation.layout.Box(
+                Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(36.dp)
@@ -90,7 +93,7 @@ fun UsbDeviceDetailCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                devices.forEach { device ->
+                devices.forEach { device: android.hardware.usb.UsbDevice ->
                     val isCurrent = attached?.deviceName == device.deviceName
                     Row(
                         modifier = Modifier
@@ -114,8 +117,8 @@ fun UsbDeviceDetailCard(
                             )
                             Text(
                                 "接口数: ${device.interfaceCount}" +
-                                if (device.manufacturerName != null) " · ${device.manufacturerName}" else "" +
-                                if (device.productName != null) " · ${device.productName}" else "",
+                                (if (device.manufacturerName != null) " · ${device.manufacturerName}" else "") +
+                                (if (device.productName != null) " · ${device.productName}" else ""),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Web
@@ -66,7 +65,7 @@ private val CREDITS = listOf(
         "https://github.com/aosp-mirror/platform_system_core"),
     CreditItem("Fastboot 协议参考", "Android Open Source Project", "GitHub",
         "https://github.com/aosp-mirror/platform_system_core/tree/main/fastboot"),
-    CreditItem("JSch SSH 库", "JCraft (mwiede fork)", "GitHub",
+    CreditItem("JSch SSH 库", "mwiede", "GitHub",
         "https://github.com/mwiede/jsch"),
     CreditItem("BouncyCastle 加密库", "The Legion of the Bouncy Castle", "GitHub",
         "https://github.com/bcgit/bc-java"),
@@ -74,10 +73,14 @@ private val CREDITS = listOf(
         "https://github.com/square/okhttp"),
     CreditItem("Apache Commons Compress", "Apache Software Foundation", "GitHub",
         "https://github.com/apache/commons-compress"),
-    CreditItem("Compose Material3", "Google", "GitHub",
+    CreditItem("Compose Material3", "Google / AndroidX", "GitHub",
         "https://github.com/androidx/androidx"),
-    CreditItem("Liquid Glass UI 灵感", "Apple (iOS 26)", "官网",
-        "https://developer.apple.com/design/human-interface-guidelines/material"),
+    CreditItem("Kotlin 协程", "JetBrains", "GitHub",
+        "https://github.com/Kotlin/kotlinx.coroutines"),
+    CreditItem("Jetpack Compose", "Google", "GitHub",
+        "https://github.com/androidx/androidx"),
+    CreditItem("Liquid Glass UI 灵感", "Apple", "官网",
+        "https://developer.apple.com/design"),
     CreditItem("HyperOS 动画规范参考", "小米", "官网",
         "https://hyper.mi.com"),
     CreditItem("卡刷包解析思路", "酷安@某只寄托", "酷安",
@@ -85,10 +88,22 @@ private val CREDITS = listOf(
     CreditItem("9008 EDL 救砖原理", "酷安@高通刷机研究组", "酷安",
         "https://www.coolapk.com/feed/45000001"),
     CreditItem("分区表工具灵感", "酷安@PartitionTool", "酷安",
-        "https://www.coolapk.com/apk/com.partition.tool")
+        "https://www.coolapk.com/apk/com.partition.tool"),
+    CreditItem("libusb", "libusb 团队", "GitHub",
+        "https://github.com/libusb/libusb"),
+    CreditItem("termux-app 参考", "termux", "GitHub",
+        "https://github.com/termux/termux-app"),
+    CreditItem("MT 管理器参考", "蓝奏云", "官网",
+        "https://www.lanzou.com"),
+    CreditItem("Gradle 构建系统", "Gradle Inc", "GitHub",
+        "https://github.com/gradle/gradle"),
+    CreditItem("Android SDK", "Google", "官网",
+        "https://developer.android.com"),
+    CreditItem("ProGuard / R8", "Guardsquare", "GitHub",
+        "https://github.com/Guardsquare/proguard")
 )
 
-/** 联系方式: 标签 / 详情 / 主链接 / 备用链接 */
+/** 联系方式 */
 private data class ContactItem(
     val label: String,
     val detail: String,
@@ -119,11 +134,11 @@ private fun AboutScreen() {
 
             Spacer(Modifier.height(24.dp))
 
-            // 作者头像 (卡通) + 网名 + 版本
+            // 作者头像 + 网名 + 版本
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_avatar_cartoon),
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
                     contentDescription = "作者头像",
                     modifier = Modifier.size(88.dp)
                 )
@@ -164,7 +179,7 @@ private fun AboutScreen() {
                             }
                         }
                     }
-                    Spacer(Modifier.height(8.dp))  // 卡片底部留 8dp 空间
+                    Spacer(Modifier.height(8.dp))
                 }
             }
 
@@ -214,10 +229,9 @@ private fun CreditRow(item: CreditItem, onClick: () -> Unit) {
 
 @Composable
 private fun ContactCapsule(item: ContactItem, onClick: () -> Unit) {
-    // 胶囊按钮: 完全圆角的 Surface + Primary 色淡背景与边框
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),  // 高度 56 的一半 = 完全圆角胶囊
+        shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
     ) {

@@ -9,12 +9,12 @@ android {
 
     defaultConfig {
         applicationId = "com.jifeng.toolbox"
-        minSdk = 24
+        minSdk = 21
         targetSdk = 34
-        versionCode = 6
-        versionName = "2.3.0"
+        versionCode = 1
+        versionName = "1.0.0"
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
         }
     }
 
@@ -80,7 +80,7 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // Compose (Material 3 + 液态玻璃基础)
+    // Compose (Material 3 + 液态玻璃)
     val composeBom = platform("androidx.compose:compose-bom:2024.06.00")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
@@ -92,16 +92,16 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    // Networking (下载器 / GitHub / 酷安拉取)
+    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // ZIP 处理 (fastboot 卡刷包解析)
+    // ZIP 处理
     implementation("org.apache.commons:commons-compress:1.26.2")
 
-    // RSA 加密 (ADB 授权 + 加密工具模块)
+    // RSA 加密
     implementation("org.bouncycastle:bcprov-jdk18on:1.78")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.78")
 
-    // SSH 客户端 (超级终端 SSH 模式)
+    // SSH 客户端
     implementation("com.github.mwiede:jsch:0.2.20")
 }

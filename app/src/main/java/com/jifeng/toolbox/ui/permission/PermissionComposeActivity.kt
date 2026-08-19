@@ -9,7 +9,6 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,7 +71,6 @@ class PermissionComposeActivity : ComponentActivity() {
     }
 }
 
-/** 权限说明条目: 标题 / 用途 / 图标 */
 private data class PermInfo(
     val title: String,
     val purpose: String,
@@ -83,7 +81,7 @@ private data class PermInfo(
 private fun PermissionScreen(onProceed: () -> Unit) {
     val ctx = LocalContext.current
 
-    // 根据系统版本构建需要请求的运行时权限列表
+    // 运行时权限列表 (需要弹窗请求的)
     val runtimePerms: List<String> = remember {
         buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -98,117 +96,132 @@ private fun PermissionScreen(onProceed: () -> Unit) {
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
-            add(Manifest.permission.INTERNET)
-            add(Manifest.permission.ACCESS_NETWORK_STATE)
-            add(Manifest.permission.ACCESS_WIFI_STATE)
+            // INTERNET / NETWORK / WIFI 是 normal 权限, 安装时自动授予, 不需请求
         }
     }
 
-    // 展示用权限说明列表
     val permInfos: List<PermInfo> = remember {
         buildList {
             add(PermInfo("网络权限 (INTERNET)",
-                "用于固件下载、GitHub API 访问、酷安社区 ROM 源检索、SSH 连接。",
+                "用于固件下载、GitHub API 访问、酷安社区 ROM 源检索。",
                 Icons.Default.Notifications))
-            add(PermInfo("网络状态 (ACCESS_NETWORK_STATE)",
+            add(PermInfo("网络状态",
                 "检测网络连接状态, 优化下载策略。",
                 Icons.Default.Notifications))
-            add(PermInfo("WiFi 状态 (ACCESS_WIFI_STATE)",
+            add(PermInfo("WiFi 状态",
                 "获取 WiFi 信息, 支持无线调试配对。",
                 Icons.Default.Notifications))
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(PermInfo("通知权限 (POST_NOTIFICATIONS)",
                     "用于显示刷机进度、下载完成、ADB 守护服务等前台通知。",
                     Icons.Default.Notifications))
-                add(PermInfo("媒体访问 (READ_MEDIA_IMAGES/VIDEO/AUDIO)",
+                add(PermInfo("媒体访问 (READ_MEDIA_*)",
                     "读取设备中的图片、视频、音频, 用于备份与刷写。",
                     Icons.Default.Apps))
             }
             if (Build.VERSION.SDK_INT in Build.VERSION_CODES.R..Build.VERSION_CODES.S_V2) {
                 add(PermInfo("所有文件访问 (MANAGE_EXTERNAL_STORAGE)",
-                    "读写刷机包、备份文件、日志到公共存储; 需在系统设置中手动授予。",
+                    "读写刷机包、备份文件、日志到公共存储。",
                     Icons.Default.Folder))
-                add(PermInfo("存储读取 (READ_EXTERNAL_STORAGE)",
+                add(PermInfo("存储读取",
                     "读取设备存储中的刷机包与备份文件。",
                     Icons.Default.Folder))
             }
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-                add(PermInfo("存储读写 (READ/WRITE_EXTERNAL_STORAGE)",
+                add(PermInfo("存储读写",
                     "读写刷机包、备份文件到设备存储。",
                     Icons.Default.Folder))
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 add(PermInfo("悬浮窗权限 (SYSTEM_ALERT_WINDOW)",
-                    "用于显示 ADB 授权悬浮窗、通知栏快速配对、屏幕镜像悬浮控制。",
+                    "用于显示 ADB 授权悬浮窗、通知栏快速配对、屏幕镜像。",
                     Icons.Default.Window))
             }
             add(PermInfo("USB 权限",
-                "连接 USB OTG 设备时由系统弹窗索取, 本页面仅作提示, 无需手动授予。",
+                "连接 USB OTG 设备时由系统弹窗索取, 本页面仅作提示。",
                 Icons.Default.Usb))
-            add(PermInfo("应用安装权限 (REQUEST_INSTALL_PACKAGES)",
+            add(PermInfo("应用安装权限",
                 "用于安装下载的 APK 刷机包。",
                 Icons.Default.Apps))
         }
     }
 
-    // 逐个请求运行时权限的状态机
+    // 权限请求状态机
     var permIndex by remember { mutableStateOf(-1) }
-    var storageLaunched by remember { mutableStateOf(false) }
+    var step by remember { mutableStateOf(0) } // 0=未开始, 1=运行时权限中, 2=特殊权限中, 3=完成
+    var hasNextStep by remember { mutableStateOf(true) }
 
-    val permLauncher = rememberLauncherForActivityResult(
+    val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { permIndex++ }
+    ) {
+        permIndex++
+    }
 
-    // permIndex 变化时驱动请求下一个权限; 全部完成后自动跳转主界面
+    // 运行时权限链式请求
     LaunchedEffect(permIndex) {
         when {
             permIndex in runtimePerms.indices -> {
                 permLauncher.launch(runtimePerms[permIndex])
             }
-            permIndex >= runtimePerms.size && permIndex != -1 && !storageLaunched -> {
-                storageLaunched = true
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                    !Environment.isExternalStorageManager()
-                ) {
-                    try {
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
-                        ).apply { data = Uri.parse("package:${ctx.packageName}") }
-                        ctx.startActivity(intent)
-                    } catch (_: Exception) {
-                        try {
-                            ctx.startActivity(
-                                Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                            )
-                        } catch (_: Exception) {}
-                    }
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                    !Settings.canDrawOverlays(ctx)
-                ) {
-                    try {
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:${ctx.packageName}")
-                        )
-                        ctx.startActivity(intent)
-                    } catch (_: Exception) {}
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                    !ctx.packageManager.canRequestPackageInstalls()
-                ) {
-                    try {
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                            Uri.parse("package:${ctx.packageName}")
-                        )
-                        ctx.startActivity(intent)
-                    } catch (_: Exception) {}
-                }
-                // 权限请求全部完成后, 延迟1.5秒自动跳转主界面
-                kotlinx.coroutines.delay(1500)
-                onProceed()
+            permIndex >= runtimePerms.size && permIndex != -1 && step == 1 -> {
+                // 运行时权限完成, 进入特殊权限阶段
+                step = 2
             }
+        }
+    }
+
+    // 特殊权限阶段: 依次引导存储 → 悬浮窗 → 安装未知应用
+    LaunchedEffect(step) {
+        if (step == 2) {
+            var pending = false
+            // 存储管理权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                !Environment.isExternalStorageManager()
+            ) {
+                pending = true
+                try {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
+                    ).apply { data = Uri.parse("package:${ctx.packageName}") }
+                    ctx.startActivity(intent)
+                } catch (_: Exception) {
+                    try {
+                        ctx.startActivity(
+                            Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                        )
+                    } catch (_: Exception) {}
+                }
+            }
+            // 悬浮窗权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                !Settings.canDrawOverlays(ctx)
+            ) {
+                pending = true
+                try {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:${ctx.packageName}")
+                    )
+                    ctx.startActivity(intent)
+                } catch (_: Exception) {}
+            }
+            // 安装未知应用权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                !ctx.packageManager.canRequestPackageInstalls()
+            ) {
+                pending = true
+                try {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${ctx.packageName}")
+                    )
+                    ctx.startActivity(intent)
+                } catch (_: Exception) {}
+            }
+            // 全部完成或无需要引导的权限 → 自动跳转
+            kotlinx.coroutines.delay(if (pending) 2000 else 500)
+            step = 3
+            onProceed()
         }
     }
 
@@ -237,9 +250,12 @@ private fun PermissionScreen(onProceed: () -> Unit) {
             Spacer(Modifier.height(4.dp))
             Button(
                 onClick = {
-                    // 启动逐个请求链: 若无可请求权限则直接进入所有文件访问设置页
-                    storageLaunched = false
-                    permIndex = 0
+                    if (runtimePerms.isNotEmpty()) {
+                        step = 1
+                        permIndex = 0
+                    } else {
+                        step = 2
+                    }
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(

@@ -50,7 +50,6 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Usb
-import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -107,7 +106,7 @@ class MainComposeActivity : ComponentActivity() {
         setContent { MainScreen() }
     }
 
-    /** USB 热插拔动态接收器: 插入 ADB 设备自动请求权限连接, 拔出自动断开。 */
+    /** USB 热插拔动态接收器。 */
     private val usbReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val device = intent.usbDeviceExtra()
@@ -197,11 +196,11 @@ class MainComposeActivity : ComponentActivity() {
         }
 
         Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            // Hero 标题区 — 澎湃OS 4 风格
+            // Hero 标题区
             HeroHeader()
             Spacer(Modifier.height(16.dp))
 
-            // 顶部设备信息卡片 — 柔光玻璃材质
+            // 顶部设备信息卡片
             DeviceHeader(device, usbState, loading, onRefresh = { usbMgr.scanAndConnect() },
                 onReboot = { target ->
                     device?.serial?.let { s ->
@@ -235,7 +234,7 @@ class MainComposeActivity : ComponentActivity() {
                 )
             }
 
-            // 功能栅格 — 2 列大卡片 (澎湃OS 4 风格)
+            // 功能栅格 — 每个模块唯一入口
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(bottom = 24.dp),
@@ -251,9 +250,7 @@ class MainComposeActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Hero 标题区 — 澎湃OS 4 风格: 字重加大, 副标题渐变色。
-     */
+    /** Hero 标题区 */
     @Composable
     private fun HeroHeader() {
         Column(
@@ -268,7 +265,6 @@ class MainComposeActivity : ComponentActivity() {
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            // 副标题 — 渐变色彩
             Text(
                 text = buildAnnotatedString {
                     withStyle(
@@ -299,11 +295,10 @@ class MainComposeActivity : ComponentActivity() {
         onRefresh: () -> Unit,
         onReboot: (String) -> Unit
     ) {
-        LiquidGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp, padding = 16.dp) {
+        LiquidGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp, padding = 16.dp) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // 设备图标 — 渐变圆形背景 (蓝色系)
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -318,7 +313,6 @@ class MainComposeActivity : ComponentActivity() {
                                 )
                             )
                             .drawBehind {
-                                // 外层柔光
                                 drawCircle(
                                     color = JFColors.Brand.copy(alpha = 0.15f),
                                     radius = size.minDimension / 2f + 4f
@@ -345,7 +339,6 @@ class MainComposeActivity : ComponentActivity() {
                                     else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    // 刷新按钮 — 玻璃胶囊样式
                     GlassCapsuleButton(
                         text = "刷新",
                         onClick = onRefresh
@@ -354,7 +347,6 @@ class MainComposeActivity : ComponentActivity() {
 
                 Spacer(Modifier.height(12.dp))
 
-                // 状态内容 — 带淡入淡出动画
                 AnimatedVisibility(
                     visible = true,
                     enter = fadeIn(tween(HyperOSMotion.durationMedium)),
@@ -396,7 +388,7 @@ class MainComposeActivity : ComponentActivity() {
 
                 Spacer(Modifier.height(12.dp))
 
-                // 重启按钮组 — 玻璃胶囊样式
+                // 重启按钮组
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     GlassCapsuleButton("系统", { onReboot("system") })
                     GlassCapsuleButton("Recovery", { onReboot("recovery") })
@@ -409,9 +401,17 @@ class MainComposeActivity : ComponentActivity() {
 
     private data class Tile(val label: String, val icon: ImageVector, val target: Class<*>)
 
+    /**
+     * 功能列表 v2 — 每个模块唯一入口, 去除重复项。
+     *
+     * 修复重复:
+     *  - "Fastboot刷机" + "9008救砖" → 合并为「刷机工具」(FlashComposeActivity, 内部 tab 切换)
+     *  - "超级终端" + "Shell权限" → 合并为「超级终端」(TerminalComposeActivity, 本地模式)
+     *
+     * 分区表编辑: 支持编辑本地救砖包分区表 + 编辑目标设备分区表
+     */
     private val FEATURE_TILES = listOf(
-        Tile("Fastboot 刷机", Icons.Default.Bolt, FlashComposeActivity::class.java),
-        Tile("9008 救砖", Icons.Default.Build, FlashComposeActivity::class.java),
+        Tile("刷机工具", Icons.Default.Bolt, FlashComposeActivity::class.java),
         Tile("分区表编辑", Icons.Default.Storage, PartitionEditorComposeActivity::class.java),
         Tile("超级终端", Icons.Default.Terminal, TerminalComposeActivity::class.java),
         Tile("全能下载器", Icons.Default.CloudDownload, DownloaderComposeActivity::class.java),
@@ -423,8 +423,7 @@ class MainComposeActivity : ComponentActivity() {
         Tile("玩机工具", Icons.Default.Security, TweakComposeActivity::class.java),
         Tile("加密工具", Icons.Default.EnhancedEncryption, CryptoComposeActivity::class.java),
         Tile("内置浏览器", Icons.Default.Web, BrowserComposeActivity::class.java),
-        Tile("Shell 权限", Icons.Default.VerifiedUser, TerminalComposeActivity::class.java),
-        Tile("USB 状态", Icons.Default.Usb, TerminalComposeActivity::class.java),
+        Tile("USB 管理", Icons.Default.Usb, TerminalComposeActivity::class.java),
         Tile("关于", Icons.Default.Info, AboutComposeActivity::class.java)
     )
 }

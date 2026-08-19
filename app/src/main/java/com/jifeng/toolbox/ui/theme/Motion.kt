@@ -53,7 +53,7 @@ object HyperOSMotion {
     /** 按钮按压弹性 — 按压缩放 0.92, 松手弹性回弹 */
     val buttonPressSpring = spring<Float>(
         dampingRatio = 0.65f,
-        stiffness = Spring.StiffnessMediumHigh
+        stiffness = 600f
     )
     val buttonReleaseSpring = spring<Float>(
         dampingRatio = 0.55f,

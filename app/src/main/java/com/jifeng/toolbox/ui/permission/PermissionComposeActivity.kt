@@ -66,7 +66,9 @@ class PermissionComposeActivity : ComponentActivity() {
             .edit()
             .putBoolean(DisclaimerComposeActivity.KEY_PERMISSION_ASKED, true)
             .apply()
-        startActivity(Intent(this, MainComposeActivity::class.java))
+        startActivity(Intent(this, MainComposeActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        })
         finish()
     }
 }

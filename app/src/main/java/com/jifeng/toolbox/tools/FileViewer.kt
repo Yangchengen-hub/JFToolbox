@@ -21,7 +21,7 @@ import java.util.zip.ZipFile
 object FileViewer {
 
     /** 文件大类。 */
-    enum class FileType { IMAGE, VIDEO, AUDIO, TEXT, PDF, ARCHIVE, BINARY, UNKNOWN }
+    enum class FileType { IMAGE, VIDEO, AUDIO, TEXT, DOCUMENT, PDF, ARCHIVE, BINARY, UNKNOWN }
 
     // ---- 扩展名表 ----
     private val IMAGE_EXTS = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
@@ -34,6 +34,7 @@ object FileViewer {
         "log", "csv", "html", "htm", "css", "scss", "sql", "lua", "pl",
         "swift", "dart", "gradle", "properties", "gitignore", "dockerfile"
     )
+    private val DOCUMENT_EXTS = setOf("doc", "docx", "xls", "xlsx", "ppt", "pptx")
     private val PDF_EXTS = setOf("pdf")
     private val ARCHIVE_EXTS = setOf("zip", "apk", "jar", "aar", "war", "rar", "7z", "tar", "gz", "bz2", "xz")
 
@@ -47,6 +48,7 @@ object FileViewer {
             in VIDEO_EXTS -> FileType.VIDEO
             in AUDIO_EXTS -> FileType.AUDIO
             in TEXT_EXTS -> FileType.TEXT
+            in DOCUMENT_EXTS -> FileType.DOCUMENT
             in PDF_EXTS -> FileType.PDF
             in ARCHIVE_EXTS -> FileType.ARCHIVE
             else -> if (isProbablyText(file)) FileType.TEXT else FileType.BINARY

@@ -102,6 +102,7 @@
         <activity android:name=".ui.crypto.CryptoComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.browser.BrowserComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.about.AboutComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.usb.UsbManagerComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.permission.PermissionComposeActivity" android:exported="false" android:theme="@style/Theme.JFToolbox" />
 
         <!-- ShellHub 悬浮窗授权 Activity (第三方请求 shell 权限时弹起) -->

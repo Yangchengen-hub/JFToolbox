@@ -45,7 +45,7 @@ fun UsbDeviceDetailCard(
     usbManager: UsbDeviceManager,
     modifier: Modifier = Modifier
 ) {
-    val devices by usbManager.discoveredDevices.collectAsState(initial = emptyList())
+    val devices by usbManager.discoveredDevices.collectAsState(initial = emptyList<android.hardware.usb.UsbDevice>())
     val state by usbManager.state.collectAsState(initial = UsbDeviceManager.State.DISCONNECTED)
     val attached by usbManager.attachedDevice.collectAsState(initial = null)
 
@@ -94,7 +94,7 @@ fun UsbDeviceDetailCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                devices.forEach { device: android.hardware.usb.UsbDevice ->
+                devices.forEach { device ->
                     val isCurrent = attached?.deviceName == device.deviceName
                     Row(
                         modifier = Modifier

@@ -137,11 +137,16 @@ private fun AboutScreen() {
             // 作者头像 + 网名 + 版本
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = "作者头像",
+                Surface(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = com.jifeng.toolbox.ui.theme.JFColors.Brand.copy(alpha = 0.15f),
                     modifier = Modifier.size(88.dp)
-                )
+                ) {
+                    androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        androidx.compose.material3.Text("JF", style = MaterialTheme.typography.headlineMedium,
+                            color = com.jifeng.toolbox.ui.theme.JFColors.Brand, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
+                    }
+                }
                 Column {
                     Text("诺言", style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)

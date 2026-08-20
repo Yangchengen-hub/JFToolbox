@@ -92,6 +92,7 @@ import com.jifeng.toolbox.ui.backup.BackupComposeActivity
 import com.jifeng.toolbox.ui.firmware.FirmwareComposeActivity
 import com.jifeng.toolbox.ui.installer.InstallerComposeActivity
 import com.jifeng.toolbox.ui.terminal.TerminalComposeActivity
+import com.jifeng.toolbox.ui.usb.UsbManagerComposeActivity
 import com.jifeng.toolbox.ui.tweak.TweakComposeActivity
 import com.jifeng.toolbox.ui.theme.JFColors
 import com.jifeng.toolbox.ui.theme.HyperOSMotion
@@ -413,7 +414,7 @@ class MainComposeActivity : ComponentActivity() {
     private val FEATURE_TILES = listOf(
         Tile("刷机工具", Icons.Default.Bolt, FlashComposeActivity::class.java),
         Tile("分区表编辑", Icons.Default.Storage, PartitionEditorComposeActivity::class.java),
-        Tile("超级终端", Icons.Default.Terminal, TerminalComposeActivity::class.java),
+        Tile("超级终端", Icons.Default.Terminal, UsbManagerComposeActivity::class.java),
         Tile("全能下载器", Icons.Default.CloudDownload, DownloaderComposeActivity::class.java),
         Tile("固件下载", Icons.Default.Download, FirmwareComposeActivity::class.java),
         Tile("全能安装器", Icons.Default.Apps, InstallerComposeActivity::class.java),

@@ -199,20 +199,20 @@ private fun UsbManagerScreen() {
                     color = MaterialTheme.colorScheme.onSurface)
                 if (device != null) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GlassCapsuleButton("重启系统") {
+                        GlassCapsuleButton(text = "重启系统", onClick = {
                             scope.launch { withContext(Dispatchers.IO) { device?.serial?.let { DeviceDetector.reboot(it, "system") } } }
-                        }
-                        GlassCapsuleButton("Recovery") {
+                        })
+                        GlassCapsuleButton(text = "Recovery", onClick = {
                             scope.launch { withContext(Dispatchers.IO) { device?.serial?.let { DeviceDetector.reboot(it, "recovery") } } }
-                        }
+                        })
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GlassCapsuleButton("Bootloader") {
+                        GlassCapsuleButton(text = "Bootloader", onClick = {
                             scope.launch { withContext(Dispatchers.IO) { device?.serial?.let { DeviceDetector.reboot(it, "bootloader") } } }
-                        }
-                        GlassCapsuleButton("EDL 9008") {
+                        })
+                        GlassCapsuleButton(text = "EDL 9008", onClick = {
                             scope.launch { withContext(Dispatchers.IO) { device?.serial?.let { DeviceDetector.reboot(it, "9008") } } }
-                        }
+                        })
                     }
                 } else {
                     Text("连接设备后可使用快捷操作",
@@ -220,7 +220,7 @@ private fun UsbManagerScreen() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(4.dp))
-                GlassCapsuleButton("刷新") { usbMgr.scanAndConnect() }
+                GlassCapsuleButton(text = "刷新", onClick = { usbMgr.scanAndConnect() })
             }
         }
     }

@@ -100,3 +100,31 @@ fun GlassCapsuleButton(
         }
     }
 }
+
+/**
+ * 可点击的液态玻璃卡片。
+ */
+@Composable
+fun LiquidGlassClickableCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 20.dp,
+    padding: Dp = 0.dp,
+    onClick: () -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(cornerRadius)
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = shape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+        tonalElevation = 1.dp,
+        shadowElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(padding),
+            content = content
+        )
+    }
+}

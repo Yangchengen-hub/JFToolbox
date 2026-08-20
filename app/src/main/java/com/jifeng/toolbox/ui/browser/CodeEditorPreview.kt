@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import java.io.File
 
 /**
- * 代码编辑器/预览器 — 多语言语法高亮 + 行号。
+ * 代码编辑器/预览器 - 多语言语法高亮 + 行号。
  */
 object CodeEditorPreview {
 
@@ -73,27 +73,73 @@ object CodeEditorPreview {
         val kws = KEYWORDS[lang] ?: emptySet()
         var i = 0
         while (i < line.length) {
-            if (line.startsWith("//", i) || (lang == Language.PYTHON && line.startsWith("#", i))) {
-                b.pushStyle(SpanStyle(color = CMT_COLOR)); b.append(line.substring(i)); b.pop(); break
+            // Line comments
+            if (i + 1 < line.length && line[i] == '/' && line[i + 1] == '/') {
+                b.pushStyle(SpanStyle(color = CMT_COLOR))
+                b.append(line.substring(i))
+                b.pop()
+                break
             }
-            if (line[i] == '"' || line[i] == '\'\'') {
-                val q = line[i]; b.pushStyle(SpanStyle(color = STR_COLOR)); b.append(q); i++
-                while (i < line.length && line[i] != q) { if (line[i] == \'\\\\\' && i+1<line.length) { b.append(line.substring(i,i+2)); i+=2 } else { b.append(line[i]); i++ } }
-                if (i < line.length) { b.append(line[i]); i++ }
-                b.pop(); continue
+            // Python comments
+            if (lang == Language.PYTHON && line[i] == '#') {
+                b.pushStyle(SpanStyle(color = CMT_COLOR))
+                b.append(line.substring(i))
+                b.pop()
+                break
             }
+            // String literals
+            if (line[i] == '"' || line[i] == '\'') {
+                val q = line[i]
+                b.pushStyle(SpanStyle(color = STR_COLOR))
+                b.append(q)
+                i++
+                while (i < line.length && line[i] != q) {
+                    if (line[i] == '\\' && i + 1 < line.length) {
+                        b.append(line.substring(i, i + 2))
+                        i += 2
+                    } else {
+                        b.append(line[i])
+                        i++
+                    }
+                }
+                if (i < line.length) {
+                    b.append(line[i])
+                    i++
+                }
+                b.pop()
+                continue
+            }
+            // Words (keywords/identifiers)
             if (line[i].isLetter() || line[i] == '_') {
-                val s = i; while (i < line.length && (line[i].isLetterOrDigit() || line[i] == '_')) i++
+                val s = i
+                while (i < line.length && (line[i].isLetterOrDigit() || line[i] == '_')) i++
                 val w = line.substring(s, i)
-                val c = when { w in kws -> KW_COLOR; w.first().isUpperCase() && lang != Language.SQL -> TYPE_COLOR; w.all { it.isDigit() } -> NUM_COLOR; else -> DEF_COLOR }
-                b.pushStyle(SpanStyle(color = c)); b.append(w); b.pop(); continue
+                val c = when {
+                    w in kws -> KW_COLOR
+                    w.first().isUpperCase() && lang != Language.SQL -> TYPE_COLOR
+                    w.all { it.isDigit() } -> NUM_COLOR
+                    else -> DEF_COLOR
+                }
+                b.pushStyle(SpanStyle(color = c))
+                b.append(w)
+                b.pop()
+                continue
             }
+            // Numbers
             if (line[i].isDigit()) {
                 b.pushStyle(SpanStyle(color = NUM_COLOR))
-                while (i < line.length && (line[i].isDigit() || line[i] == '.')) { b.append(line[i]); i++ }
-                b.pop(); continue
+                while (i < line.length && (line[i].isDigit() || line[i] == '.')) {
+                    b.append(line[i])
+                    i++
+                }
+                b.pop()
+                continue
             }
-            b.pushStyle(SpanStyle(color = DEF_COLOR)); b.append(line[i]); b.pop(); i++
+            // Default
+            b.pushStyle(SpanStyle(color = DEF_COLOR))
+            b.append(line[i])
+            b.pop()
+            i++
         }
         return b.toAnnotatedString()
     }
@@ -112,15 +158,26 @@ fun CodePreviewContent(
         Row(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 8.dp).verticalScroll(vScroll)) {
                 lines.forEachIndexed { idx, _ ->
-                    Text("${idx+1}", color = Color(0xFF858585), fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace, modifier = Modifier.padding(vertical = 1.dp))
+                    Text(
+                        "${idx + 1}",
+                        color = Color(0xFF858585),
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(vertical = 1.dp)
+                    )
                 }
             }
-            Column(modifier = Modifier.weight(1f).padding(8.dp).horizontalScroll(hScroll).verticalScroll(vScroll)) {
+            Column(
+                modifier = Modifier.weight(1f).padding(8.dp).horizontalScroll(hScroll).verticalScroll(vScroll)
+            ) {
                 lines.forEach { line ->
-                    Text(text = CodeEditorPreview.highlightLine(line, language),
-                        fontSize = 12.sp, fontFamily = FontFamily.Monospace,
-                        color = Color(0xFFD4D4D4), modifier = Modifier.padding(vertical = 1.dp))
+                    Text(
+                        text = CodeEditorPreview.highlightLine(line, language),
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFFD4D4D4),
+                        modifier = Modifier.padding(vertical = 1.dp)
+                    )
                 }
             }
         }

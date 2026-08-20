@@ -368,6 +368,18 @@ private fun FileViewerTab() {
                             }
                         }
                     }
+                    FileViewer.FileType.DOCUMENT -> {
+                        LaunchedEffect(f) {
+                            textContent = withContext(Dispatchers.IO) {
+                                FileViewer.readText(f) ?: "Office 文档无法直接预览，请使用专业应用打开"
+                            }
+                        }
+                        Text(textContent,
+                            modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxSize(),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace, fontSize = 12.sp),
+                            color = MaterialTheme.colorScheme.onSurface)
+                    }
                     FileViewer.FileType.BINARY, FileViewer.FileType.UNKNOWN -> {
                         LaunchedEffect(f) {
                             hexContent = withContext(Dispatchers.IO) { FileViewer.hexDump(f) }

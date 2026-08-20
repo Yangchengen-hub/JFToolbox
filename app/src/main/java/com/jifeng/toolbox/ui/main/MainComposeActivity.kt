@@ -414,7 +414,7 @@ class MainComposeActivity : ComponentActivity() {
     private val FEATURE_TILES = listOf(
         Tile("刷机工具", Icons.Default.Bolt, FlashComposeActivity::class.java),
         Tile("分区表编辑", Icons.Default.Storage, PartitionEditorComposeActivity::class.java),
-        Tile("超级终端", Icons.Default.Terminal, UsbManagerComposeActivity::class.java),
+        Tile("超级终端", Icons.Default.Terminal, TerminalComposeActivity::class.java),
         Tile("全能下载器", Icons.Default.CloudDownload, DownloaderComposeActivity::class.java),
         Tile("固件下载", Icons.Default.Download, FirmwareComposeActivity::class.java),
         Tile("全能安装器", Icons.Default.Apps, InstallerComposeActivity::class.java),
@@ -424,7 +424,7 @@ class MainComposeActivity : ComponentActivity() {
         Tile("玩机工具", Icons.Default.Security, TweakComposeActivity::class.java),
         Tile("加密工具", Icons.Default.EnhancedEncryption, CryptoComposeActivity::class.java),
         Tile("内置浏览器", Icons.Default.Web, BrowserComposeActivity::class.java),
-        Tile("USB 管理", Icons.Default.Usb, TerminalComposeActivity::class.java),
+        Tile("USB 管理", Icons.Default.Usb, UsbManagerComposeActivity::class.java),
         Tile("关于", Icons.Default.Info, AboutComposeActivity::class.java)
     )
 }

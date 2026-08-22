@@ -102,6 +102,7 @@
         <activity android:name=".ui.crypto.CryptoComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.browser.BrowserComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.about.AboutComposeActivity" android:theme="@style/Theme.JFToolbox" />
+        <activity android:name=".ui.about.PhoneInfoComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.usb.UsbManagerComposeActivity" android:theme="@style/Theme.JFToolbox" />
         <activity android:name=".ui.permission.PermissionComposeActivity" android:exported="false" android:theme="@style/Theme.JFToolbox" />
 

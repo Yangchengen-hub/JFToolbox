@@ -34,7 +34,7 @@ object TerminalEngine {
     @Volatile private var shellProc: Process? = null
     @Volatile private var shellWriter: java.io.OutputStream? = null
     @Volatile private var shellReader: Thread? = null
-    @Volatile private val shellBuffer = StringBuilder()
+    private val shellBuffer = StringBuilder()
     @Volatile private var bufferLock = Object()
     @Volatile private var cwd: String = System.getProperty("user.home") ?: "/"
 

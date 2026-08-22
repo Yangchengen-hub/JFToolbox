@@ -82,9 +82,9 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
     val scope = rememberCoroutineScope()
     var lang by remember { mutableStateOf(autoLang) }
     var isRunning by remember { mutableStateOf(false) }
-    val logs = remember { mutableStateListOf<TermLine>() }
+    val logs: SnapshotStateList<TermLine> = remember { mutableStateListOf() }
     var input by remember { mutableStateOf("") }
-    var cwd by remember { mutableStateOf(TerminalEngine.currentDir()) }
+    var cwd: String by remember { mutableStateOf(TerminalEngine.currentDir()) }
     val scrollState = rememberScrollState()
 
     fun append(line: TermLine) {
@@ -128,7 +128,7 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
             // 顶部极简状态栏
             Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF111111)).padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("●", color = if (isRunning) TERM_ERR else TERM_PROMPT, fontSize = 10.sp)
+                Text(text = "●", color = if (isRunning) TERM_ERR else TERM_PROMPT, fontSize = 10.sp)
                 Text("JF-Terminal", color = TERM_FG, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 Spacer(Modifier.width(8.dp))
                 Text("env: $lang", color = TERM_DIM, fontSize = 11.sp, fontFamily = FontFamily.Monospace)

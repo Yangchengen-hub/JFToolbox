@@ -3,6 +3,7 @@ package com.jifeng.toolbox.ui.terminal
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,26 +15,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,201 +34,184 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jifeng.toolbox.terminal.TerminalEngine
-import com.jifeng.toolbox.ui.components.JFScaffold
-import com.jifeng.toolbox.ui.components.LiquidGlassCard
+import com.jifeng.toolbox.ui.theme.JFTheme
 import kotlinx.coroutines.launch
 
 /**
- * 超级终端 (Compose) v5 —— 单一本地模式。
+ * 超级终端 v6 — Termux 风格纯黑屏。
  *
- * 合并为单一本地模式, 去掉远程ADB和SSH tab。
- * 本机直接执行命令 (通过 Runtime.getRuntime().exec() / ProcessBuilder)。
- * 支持所有语法/语言 (shell / python / node / lua / c++ 等)。
- * 预装概念: 提示用户可通过内置包管理器安装工具。
+ * - 全屏纯黑 (#000000 或 #0D1117), 无卡片包裹
+ * - 等宽字体, 绿色提示符 + 浅色输出
+ * - 持久 shell (TerminalEngine 持有)
+ * - 输入框固定底部, 输出区可滚动
+ * - 预装提示: 首屏显示常用包管理器命令
  */
 class TerminalComposeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val autoCommand = intent?.getStringExtra("auto_command")
         val autoLang = intent?.getStringExtra("auto_lang") ?: "shell"
-        setContent { TerminalScreen(autoCommand = autoCommand, autoLang = autoLang) }
+        setContent {
+            JFTheme {
+                TerminalScreen(autoCommand = autoCommand, autoLang = autoLang)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // 不主动关闭 shell, 让它在后台持续 (Activity 重建时还能复用)
     }
 }
+
+private val TERM_BG = Color(0xFF000000)
+private val TERM_FG = Color(0xFFE6E6E6)
+private val TERM_PROMPT = Color(0xFF4ADE80)   // 绿色
+private val TERM_ACCENT = Color(0xFF7DD3FC)   // 浅蓝
+private val TERM_DIM = Color(0xFF888888)
+private val TERM_ERR = Color(0xFFF87171)
 
 @Composable
 private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shell") {
     val scope = rememberCoroutineScope()
     var lang by remember { mutableStateOf(autoLang) }
-    var langExpanded by remember { mutableStateOf(false) }
     var isRunning by remember { mutableStateOf(false) }
-    var statusText by remember { mutableStateOf("") }
-    var showPackageHint by remember { mutableStateOf(false) }
+    val logs = remember { mutableStateListOf<TermLine>() }
+    var input by remember { mutableStateOf("") }
+    var cwd by remember { mutableStateOf(TerminalEngine.currentDir()) }
+    val scrollState = rememberScrollState()
 
-    // 历史日志
-    val logs = remember { mutableStateListOf<String>() }
+    fun append(line: TermLine) {
+        logs.add(line)
+        scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
+    }
 
-    // 当前输入
-    var input by remember { mutableStateOf(autoCommand ?: "") }
-
-    /** 统一执行入口。 */
     fun runCommand(cmd: String, language: String) {
         if (cmd.isBlank() || isRunning) return
-        logs.add("$ [$language] $cmd")
+        append(TermLine.Prompt(cwd, language, cmd))
         isRunning = true
-        statusText = "执行中..."
         scope.launch {
-            val result = TerminalEngine.execute(language, cmd)
-            logs.add(result.output)
-            if (result.durationMs > 0) logs.add("(${result.durationMs}ms)")
+            val r = TerminalEngine.execute(language, cmd)
+            val isErr = r.output.contains("[exit=") && !r.output.contains("[exit=0]")
+            append(TermLine.Output(r.output, isErr))
+            cwd = TerminalEngine.currentDir()
             isRunning = false
-            statusText = ""
-            // 如果提示未安装某工具, 展示包管理器提示
-            if (result.output.contains("未安装") || result.output.contains("pkg install")) {
-                showPackageHint = true
-            }
         }
     }
 
-    // auto_command 联动
-    LaunchedEffect(autoCommand) {
+    LaunchedEffect(Unit) {
         if (!autoCommand.isNullOrBlank()) {
             runCommand(autoCommand, autoLang)
+        } else {
+            // 首屏欢迎信息 + 预装命令提示
+            append(TermLine.Output(buildString {
+                appendLine("JF Toolbox Terminal v6  (Termux-style)")
+                appendLine("持久 Shell · 多语言支持 · 工作目录保持")
+                appendLine()
+                appendLine("已预装/可调用: sh, toybox, app_process")
+                appendLine("如需更多工具, 可在 shell 中执行:")
+                appendLine("  pkg install python nodejs clang git curl wget nano")
+                appendLine()
+                appendLine("提示: 输入 `help` 查看内置命令")
+            }, false))
         }
     }
 
-    JFScaffold { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
-            Text("超级终端", style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-            Spacer(Modifier.height(8.dp))
-            Text("本地执行 · 多语言支持 (shell/python/js/lua/c++/ai-llm)",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(12.dp))
-
-            // 语言选择 + 状态栏
-            LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 12.dp) {
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Code, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary)
-                    Text("环境:", style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface)
-                    Button(onClick = { langExpanded = true }) { Text(lang) }
-                    DropdownMenu(expanded = langExpanded, onDismissRequest = { langExpanded = false }) {
-                        TerminalEngine.LANGUAGES.forEach {
-                            DropdownMenuItem(text = { Text(it) },
-                                onClick = { lang = it; langExpanded = false })
-                        }
-                    }
-                    Spacer(Modifier.width(8.dp))
+    Box(modifier = Modifier.fillMaxSize().background(TERM_BG)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 顶部极简状态栏
+            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF111111)).padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("●", color = if (isRunning) TERM_ERR else TERM_PROMPT, fontSize = 10.sp)
+                Text("JF-Terminal", color = TERM_FG, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                Spacer(Modifier.width(8.dp))
+                Text("env: $lang", color = TERM_DIM, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                Spacer(Modifier.weight(1f))
+                Text(cwd, color = TERM_DIM, fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 1)
+                // 语言切换
+                listOf("sh", "py", "js", "lua").forEach { tag ->
+                    val mapped = when(tag) { "sh"->"shell"; "py"->"python"; "js"->"javascript"; else->"lua" }
                     Text(
-                        "本地模式",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f))
-                    IconButton(onClick = { showPackageHint = true }) {
-                        Icon(Icons.Default.Computer, contentDescription = "包管理器",
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-
-            // 输出区
-            LiquidGlassCard(modifier = Modifier.fillMaxWidth().weight(1f), padding = 12.dp) {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    if (logs.isEmpty()) {
-                        val tip = """
-                            超级终端 (本地模式):
-                            • shell: 本机 Shell (sh/bash)
-                            • python/js/lua: 需安装对应解释器
-                            • c/c++: 本地 gcc/clang 编译运行
-                            • ai-llm: 本地 LLM 推理
-
-                            提示: 可通过内置包管理器安装工具
-                                  (点击右上角 💻 查看)
-                        """.trimIndent()
-                        Text(tip,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = FontFamily.Monospace, fontSize = 12.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        logs.forEach { line ->
-                            Text(line,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontFamily = FontFamily.Monospace, fontSize = 12.sp),
-                                color = MaterialTheme.colorScheme.onSurface)
+                        tag,
+                        color = if (lang == mapped) TERM_PROMPT else TERM_DIM,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(horizontal = 4.dp).let {
+                            if (lang != mapped) it else it.background(Color(0xFF1A3A1A)).padding(horizontal = 4.dp)
                         }
-                    }
-                }
-            }
-            Spacer(Modifier.height(4.dp))
-            if (isRunning) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Text(statusText, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(4.dp))
-            }
-
-            // 输入区
-            Row(verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = input, onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("输入命令/代码/prompt") },
-                    maxLines = 3,
-                    keyboardOptions = KeyboardOptions.Default,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                        fontFamily = FontFamily.Monospace))
-                IconButton(
-                    onClick = {
-                        if (input.isNotBlank() && !isRunning) {
-                            val cmd = input; input = ""
-                            runCommand(cmd, lang)
-                        }
-                    },
-                    enabled = !isRunning && input.isNotBlank()
-                ) {
-                    if (isRunning) {
-                        CircularProgressIndicator(modifier = Modifier.height(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.outline)
-                    } else {
-                        Icon(Icons.Default.Send, contentDescription = "执行",
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-        }
-    }
-
-    // 包管理器提示对话框
-    if (showPackageHint) {
-        AlertDialog(
-            onDismissRequest = { showPackageHint = false },
-            title = { Text("内置包管理器") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "如果缺少某些工具 (python/node/lua/gcc 等),\n" +
-                        "可通过以下方式安装:\n\n" +
-                        "• Termux: pkg install <包名>\n" +
-                        "• 系统自带: apt / yum / pacman\n" +
-                        "• 直接下载二进制: 访问官方网站\n\n" +
-                        "后续版本将集成一键安装功能。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPackageHint = false }) { Text("知道了") }
             }
-        )
+
+            // 输出区
+            Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 10.dp, vertical = 8.dp)) {
+                logs.forEach { line ->
+                    when (line) {
+                        is TermLine.Prompt -> {
+                            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                                Text("jif:", color = TERM_PROMPT, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                                Text(line.cwd, color = TERM_ACCENT, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                                Text(" ${line.lang} \$ ", color = TERM_DIM, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                                Text(line.cmd, color = TERM_FG, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+                        is TermLine.Output -> {
+                            Text(line.text,
+                                color = if (line.isError) TERM_ERR else TERM_FG,
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(top = 2.dp))
+                        }
+                    }
+                }
+            }
+
+            // 输入栏
+            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF0A0A0A)).padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("jif:$cwd", color = TERM_PROMPT, fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 1)
+                Text(">", color = TERM_DIM, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                BasicTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    modifier = Modifier.weight(1f).background(Color.Transparent),
+                    textStyle = TextStyle(color = TERM_FG, fontSize = 13.sp, fontFamily = FontFamily.Monospace),
+                    singleLine = false,
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions.Default,
+                    cursorBrush = SolidColor(TERM_PROMPT),
+                    decorationBox = { inner ->
+                        if (input.isEmpty()) Text("输入命令...", color = TERM_DIM, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                        inner()
+                    }
+                )
+                IconButton(onClick = {
+                    if (input.isNotBlank() && !isRunning) {
+                        val cmd = input; input = ""
+                        // 快捷语言切换
+                        val targetLang = when {
+                            cmd.startsWith(":py ") -> { input = cmd.removePrefix(":py "); "python" }
+                            cmd.startsWith(":js ") -> { input = cmd.removePrefix(":js "); "javascript" }
+                            cmd.startsWith(":lua ") -> { input = cmd.removePrefix(":lua "); "lua" }
+                            else -> lang
+                        }
+                        if (input.isNotBlank()) runCommand(input, targetLang)
+                    }
+                }, enabled = input.isNotBlank() && !isRunning) {
+                    Icon(Icons.Default.Send, contentDescription = "执行", tint = TERM_PROMPT)
+                }
+            }
+        }
     }
+}
+
+private sealed class TermLine {
+    data class Prompt(val cwd: String, val lang: String, val cmd: String) : TermLine()
+    data class Output(val text: String, val isError: Boolean) : TermLine()
 }

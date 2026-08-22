@@ -12,11 +12,11 @@ import com.jifeng.toolbox.core.Logger
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,7 +40,6 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.EnhancedEncryption
 import androidx.compose.material.icons.filled.Flaky
 import androidx.compose.material.icons.filled.Info
@@ -50,7 +49,6 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Usb
-import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,9 +75,10 @@ import com.jifeng.toolbox.adb.AdbManager
 import com.jifeng.toolbox.core.DeviceDetector
 import com.jifeng.toolbox.core.DeviceInfo
 import com.jifeng.toolbox.ui.about.AboutComposeActivity
-import com.jifeng.toolbox.ui.browser.BrowserComposeActivity
+import com.jifeng.toolbox.ui.about.PhoneInfoComposeActivity
 import com.jifeng.toolbox.ui.components.FeatureTile
 import com.jifeng.toolbox.ui.components.GlassCapsuleButton
+import com.jifeng.toolbox.ui.components.LiquidGlassBackground
 import com.jifeng.toolbox.ui.components.LiquidGlassCard
 import com.jifeng.toolbox.ui.components.JFScaffold
 import com.jifeng.toolbox.ui.crypto.CryptoComposeActivity
@@ -89,7 +88,6 @@ import com.jifeng.toolbox.ui.flash.PartitionEditorComposeActivity
 import com.jifeng.toolbox.ui.freeze.FreezeComposeActivity
 import com.jifeng.toolbox.ui.kernel.KernelComposeActivity
 import com.jifeng.toolbox.ui.backup.BackupComposeActivity
-import com.jifeng.toolbox.ui.firmware.FirmwareComposeActivity
 import com.jifeng.toolbox.ui.installer.InstallerComposeActivity
 import com.jifeng.toolbox.ui.terminal.TerminalComposeActivity
 import com.jifeng.toolbox.ui.usb.UsbManagerComposeActivity
@@ -107,13 +105,12 @@ class MainComposeActivity : ComponentActivity() {
         setContent { MainScreen() }
     }
 
-    /** USB 热插拔动态接收器。 */
     private val usbReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val device = intent.usbDeviceExtra()
             when (intent.action) {
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                    Logger.i("MainUSB", "设备插入: ${device?.deviceName} vid=${device?.vendorId} pid=${device?.productId}")
+                    Logger.i("MainUSB", "设备插入: ${device?.deviceName}")
                     device?.let { UsbDeviceManager.get(this@MainComposeActivity).onDeviceAttached(it) }
                 }
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
@@ -146,7 +143,6 @@ class MainComposeActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
-            Logger.i("MainUSB", "onNewIntent: USB 设备插入, 触发扫描连接")
             UsbDeviceManager.get(this).scanAndConnect()
         }
     }
@@ -160,8 +156,10 @@ class MainComposeActivity : ComponentActivity() {
 
     @Composable
     private fun MainScreen() {
-        JFScaffold { padding ->
-            MainContent(Modifier.padding(padding))
+        LiquidGlassBackground {
+            JFScaffold { padding ->
+                MainContent(Modifier.padding(padding))
+            }
         }
     }
 
@@ -174,12 +172,10 @@ class MainComposeActivity : ComponentActivity() {
         var device by remember { mutableStateOf<DeviceInfo?>(null) }
         var loading by remember { mutableStateOf(false) }
 
-        // 启动时自动扫描
         androidx.compose.runtime.LaunchedEffect(Unit) {
             if (usbState == UsbDeviceManager.State.DISCONNECTED) usbMgr.scanAndConnect()
         }
 
-        // 状态变化时刷新设备信息
         androidx.compose.runtime.LaunchedEffect(usbState) {
             if (usbState == UsbDeviceManager.State.CONNECTED) {
                 loading = true
@@ -197,45 +193,37 @@ class MainComposeActivity : ComponentActivity() {
         }
 
         Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            // Hero 标题区
             HeroHeader()
             Spacer(Modifier.height(16.dp))
 
-            // 顶部设备信息卡片
-            DeviceHeader(device, usbState, loading, onRefresh = { usbMgr.scanAndConnect() },
+            DeviceHeader(
+                device = device,
+                usbState = usbState,
+                loading = loading,
+                onRefresh = { usbMgr.scanAndConnect() },
+                onOpenPhoneInfo = {
+                    device?.let {
+                        PhoneInfoComposeActivity.device = it
+                        ctx.startActivity(Intent(ctx, PhoneInfoComposeActivity::class.java))
+                    }
+                },
                 onReboot = { target ->
                     device?.serial?.let { s ->
                         scope.launch { withContext(Dispatchers.IO) { DeviceDetector.reboot(s, target) } }
                     }
-                })
+                }
+            )
 
             Spacer(Modifier.height(20.dp))
 
-            // 功能栅格标题
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(4.dp, 16.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(JFColors.BrandGradientStart, JFColors.BrandGradientEnd)
-                            )
-                        )
-                )
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                Box(modifier = Modifier.size(4.dp, 16.dp).clip(RoundedCornerShape(2.dp))
+                    .background(Brush.verticalGradient(colors = listOf(JFColors.BrandGradientStart, JFColors.BrandGradientEnd))))
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    "功能",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("功能", style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
             }
 
-            // 功能栅格 — 每个模块唯一入口
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(bottom = 24.dp),
@@ -251,40 +239,16 @@ class MainComposeActivity : ComponentActivity() {
         }
     }
 
-    /** Hero 标题区 */
     @Composable
     private fun HeroHeader() {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(top = 16.dp, bottom = 4.dp)
-        ) {
-            Text(
-                "极风工具箱",
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(
-                        style = SpanStyle(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    JFColors.BrandGradientStart,
-                                    JFColors.BrandGradientEnd
-                                )
-                            ),
-                            fontWeight = FontWeight.Medium
-                        )
-                    ) {
-                        append("JF Toolbox · 专业玩机工具集")
-                    }
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+        Column(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 16.dp, bottom = 4.dp)) {
+            Text("极风工具箱", style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onBackground)
+            Text(buildAnnotatedString {
+                withStyle(SpanStyle(brush = Brush.horizontalGradient(
+                    colors = listOf(JFColors.BrandGradientStart, JFColors.BrandGradientEnd)),
+                    fontWeight = FontWeight.Medium)) { append("JF Toolbox · 专业玩机工具集") }
+            }, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 4.dp))
         }
     }
 
@@ -294,107 +258,69 @@ class MainComposeActivity : ComponentActivity() {
         usbState: UsbDeviceManager.State,
         loading: Boolean,
         onRefresh: () -> Unit,
+        onOpenPhoneInfo: () -> Unit,
         onReboot: (String) -> Unit
     ) {
-        LiquidGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp, padding = 16.dp) {
+        LiquidGlassCard(modifier = Modifier.fillMaxWidth().clickable(enabled = device != null) { onOpenPhoneInfo() },
+            cornerRadius = 24.dp, padding = 16.dp) {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        JFColors.BrandGradientStart.copy(alpha = 0.8f),
-                                        JFColors.BrandGradientEnd.copy(alpha = 0.6f)
-                                    )
-                                )
-                            )
-                            .drawBehind {
-                                drawCircle(
-                                    color = JFColors.Brand.copy(alpha = 0.15f),
-                                    radius = size.minDimension / 2f + 4f
-                                )
-                            }
-                    ) {
-                        Icon(Icons.Default.PhoneAndroid, contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).clip(CircleShape)
+                        .background(Brush.linearGradient(colors = listOf(
+                            JFColors.BrandGradientStart.copy(alpha = 0.8f),
+                            JFColors.BrandGradientEnd.copy(alpha = 0.6f))))
+                        .drawBehind {
+                            drawCircle(color = JFColors.Brand.copy(alpha = 0.15f), radius = size.minDimension / 2f + 4f)
+                        }) {
+                        Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("设备状态",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold)
-                        Text(
-                            when {
-                                loading -> "探测中..."
-                                device != null -> "已连接"
-                                else -> "未连接"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (device != null) JFColors.Success
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text("设备状态", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                        Text(when {
+                            loading -> "探测中..."
+                            device != null -> "已连接 · 点击查看完整信息"
+                            else -> "未连接"
+                        }, style = MaterialTheme.typography.bodySmall,
+                            color = if (device != null) JFColors.Success else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    GlassCapsuleButton(
-                        text = "刷新",
-                        onClick = onRefresh
-                    )
+                    GlassCapsuleButton(text = "刷新", onClick = onRefresh)
                 }
 
                 Spacer(Modifier.height(12.dp))
 
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(tween(HyperOSMotion.durationMedium)),
-                    exit = fadeOut(tween(HyperOSMotion.durationMedium))
-                ) {
+                AnimatedVisibility(visible = true, enter = fadeIn(tween(HyperOSMotion.durationMedium)), exit = fadeOut(tween(HyperOSMotion.durationMedium))) {
                     when {
-                        loading -> Text("正在探测设备...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        loading -> Text("正在全量探测设备...", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         device == null -> Text(
                             when (usbState) {
                                 UsbDeviceManager.State.REQUESTING -> "请在系统弹窗中授权 USB 调试..."
                                 UsbDeviceManager.State.CONNECTING -> "正在建立 ADB 连接..."
                                 UsbDeviceManager.State.FAILED -> "连接失败, 请检查 OTG 线与被控端 USB 调试设置"
                                 else -> "未检测到设备\n请通过 OTG 线连接被控设备并授权 USB 调试"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        else -> {
-                            Column {
-                                Text(device!!.displayName,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.height(4.dp))
-                                Text("Android ${device!!.androidVersion} · ${device!!.chipset} · SDK ${device!!.sdkInt}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("厂商: ${device!!.manufacturer} · 主板: ${device!!.board}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Root: ${if (device!!.hasRoot == true) "已获取" else "未获取"} · 模式: ${device!!.connectionMode.label}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            }, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        else -> Column {
+                            Text(device!!.displayName, style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(4.dp))
+                            Text("Android ${device!!.androidVersion} · ${device!!.chipset} · SDK ${device!!.sdkInt}",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("厂商: ${device!!.manufacturer} · 主板: ${device!!.board}",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Root: ${device!!.rootSummary} · 模式: ${device!!.connectionMode.label}",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
-
-                // 重启按钮组
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GlassCapsuleButton("系统", { onReboot("system") })
-                    GlassCapsuleButton("Recovery", { onReboot("recovery") })
-                    GlassCapsuleButton("Bootloader", { onReboot("bootloader") })
-                    GlassCapsuleButton("9008", { onReboot("9008") })
+                if (device != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        GlassCapsuleButton("系统", { onReboot("system") })
+                        GlassCapsuleButton("Recovery", { onReboot("recovery") })
+                        GlassCapsuleButton("Bootloader", { onReboot("bootloader") })
+                        GlassCapsuleButton("9008", { onReboot("9008") })
+                    }
                 }
             }
         }
@@ -402,28 +328,17 @@ class MainComposeActivity : ComponentActivity() {
 
     private data class Tile(val label: String, val icon: ImageVector, val target: Class<*>)
 
-    /**
-     * 功能列表 v2 — 每个模块唯一入口, 去除重复项。
-     *
-     * 修复重复:
-     *  - "Fastboot刷机" + "9008救砖" → 合并为「刷机工具」(FlashComposeActivity, 内部 tab 切换)
-     *  - "超级终端" + "Shell权限" → 合并为「超级终端」(TerminalComposeActivity, 本地模式)
-     *
-     * 分区表编辑: 支持编辑本地救砖包分区表 + 编辑目标设备分区表
-     */
     private val FEATURE_TILES = listOf(
         Tile("刷机工具", Icons.Default.Bolt, FlashComposeActivity::class.java),
         Tile("分区表编辑", Icons.Default.Storage, PartitionEditorComposeActivity::class.java),
         Tile("超级终端", Icons.Default.Terminal, TerminalComposeActivity::class.java),
-        Tile("全能下载器", Icons.Default.CloudDownload, DownloaderComposeActivity::class.java),
-        Tile("固件下载", Icons.Default.Download, FirmwareComposeActivity::class.java),
+        Tile("全线程下载", Icons.Default.CloudDownload, DownloaderComposeActivity::class.java),
         Tile("全能安装器", Icons.Default.Apps, InstallerComposeActivity::class.java),
         Tile("内核刷写", Icons.Default.Memory, KernelComposeActivity::class.java),
         Tile("一键备份", Icons.Default.Storage, BackupComposeActivity::class.java),
         Tile("智能冻结", Icons.Default.Flaky, FreezeComposeActivity::class.java),
         Tile("玩机工具", Icons.Default.Security, TweakComposeActivity::class.java),
         Tile("加密工具", Icons.Default.EnhancedEncryption, CryptoComposeActivity::class.java),
-        Tile("内置浏览器", Icons.Default.Web, BrowserComposeActivity::class.java),
         Tile("USB 管理", Icons.Default.Usb, UsbManagerComposeActivity::class.java),
         Tile("关于", Icons.Default.Info, AboutComposeActivity::class.java)
     )

@@ -79,7 +79,7 @@ object TerminalEngine {
         ).joinToString("\n") { (w, n) -> "alias $w='$n' 2>/dev/null" }
 
         return """
-            export PATH="$pathDirs:$PATH"
+            export PATH="$pathDirs:${'$'}PATH"
             export PS1='jif:\w> '
             export TERM=xterm-256color
             umask 022
@@ -280,5 +280,4 @@ object TerminalEngine {
         p.inputStream.bufferedReader().readText().trim().ifBlank { null }
     } catch (_: Exception) { null }
 
-    fun resetLlmEnv() { llmEnv = null }
-}
+    fun resetLlmEnv() { llmEnv = null

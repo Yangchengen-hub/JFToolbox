@@ -52,114 +52,124 @@ class TerminalComposeActivity : ComponentActivity() {
 }
 
 private val TERM_BG = Color(0xFF000000)
-private val TERM_FG = Color(0xFFE6E6E6)
+private val TERM_FG = Color(0xFFE8E8E8)
 private val TERM_PROMPT = Color(0xFF4ADE80)
 private val TERM_ACCENT = Color(0xFF7DD3FC)
-private val TERM_DIM = Color(0xFF888888)
+private val TERM_DIM = Color(0xFF6B7280)
 private val TERM_ERR = Color(0xFFF87171)
+private val TERM_BAR = Color(0xFF0A0A0A)
+private val TERM_BAR_DIVIDER = Color(0xFF1A1A1A)
 
 @Composable
 private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shell") {
     val scope = rememberCoroutineScope()
-    var lang by remember { mutableStateOf(autoLang) }
+    var lang by remember { mutableStateOf("shell") }
     var isRunning by remember { mutableStateOf(false) }
     val logs = remember { mutableStateListOf<TermLine>() }
     var input by remember { mutableStateOf("") }
-    var cwd by remember { mutableStateOf("") }
+    var cwd by remember { mutableStateOf("/") }
     val scrollState = rememberScrollState()
-
-    LaunchedEffect(Unit) { cwd = TerminalEngine.currentDir() }
 
     fun append(line: TermLine) {
         logs.add(line)
         scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
     }
-    fun runCommand(cmd: String, language: String) {
-        if (cmd.isBlank() || isRunning) return
-        append(TermLine.Prompt(cwd, language, cmd))
+
+    fun runCommand(raw: String) {
+        if (raw.isBlank() || isRunning) return
+        // 前缀语言切换
+        var cmd = raw.trim()
+        var targetLang = "shell"
+        when {
+            cmd.startsWith(":py ") -> { targetLang = "python"; cmd = cmd.removePrefix(":py ").trim() }
+            cmd.startsWith(":js ") -> { targetLang = "javascript"; cmd = cmd.removePrefix(":js ").trim() }
+            cmd.startsWith(":lua ") -> { targetLang = "lua"; cmd = cmd.removePrefix(":lua ").trim() }
+            cmd.startsWith(":c ") -> { targetLang = "c/c++"; cmd = cmd.removePrefix(":c ").trim() }
+        }
+        if (cmd.isBlank()) return
+        lang = targetLang
+        append(TermLine.Prompt(cwd, cmd))
         isRunning = true
         scope.launch {
-            val r = TerminalEngine.execute(language, cmd)
-            val isErr = r.output.contains("[exit=") && !r.output.contains("[exit=0]")
-            append(TermLine.Output(r.output, isErr))
+            val r = TerminalEngine.execute(targetLang, cmd)
+            val isErr = r.output.contains("[exit=") && !r.output.contains("[exit=0]") ||
+                r.output.startsWith("错误") || r.output.startsWith("Shell")
+            if (r.output.isNotBlank()) append(TermLine.Output(r.output, isErr))
             cwd = TerminalEngine.currentDir()
             isRunning = false
+            lang = "shell"
         }
     }
+
+    // 打开即显示 banner
+    LaunchedEffect(Unit) {
+        cwd = TerminalEngine.currentDir()
+        append(TermLine.Output(TerminalEngine.banner(), false))
+    }
+
     LaunchedEffect(autoCommand) {
-        if (!autoCommand.isNullOrBlank()) runCommand(autoCommand, autoLang)
-        else append(TermLine.Output(buildString {
-            appendLine("JF Toolbox Terminal v6 (Termux-style)")
-            appendLine("持久 Shell - 多语言支持 - 工作目录保持")
-            appendLine()
-            appendLine("预装/可调用: sh, toybox, app_process")
-            appendLine("安装更多工具: pkg install python nodejs clang git")
-            appendLine("语言前缀: :py :js :lua 临时切换")
-        }, false))
+        if (!autoCommand.isNullOrBlank()) runCommand(autoCommand)
     }
 
     Box(modifier = Modifier.fillMaxSize().background(TERM_BG)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF111111))
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("●", color = if (isRunning) TERM_ERR else TERM_PROMPT, fontSize = 10.sp)
-                Text("JF-Terminal", color = TERM_FG, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                Spacer(Modifier.width(8.dp))
-                Text("env: $lang", color = TERM_DIM, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            // 极简状态栏
+            Row(modifier = Modifier.fillMaxWidth().background(TERM_BAR_DIVIDER)
+                .padding(horizontal = 12.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("●", color = if (isRunning) TERM_ERR else TERM_PROMPT, fontSize = 9.sp)
+                Spacer(Modifier.width(6.dp))
+                Text("jf-term", color = TERM_FG, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                 Spacer(Modifier.weight(1f))
-                Text(cwd, color = TERM_DIM, fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 1)
-                listOf("sh" to "shell", "py" to "python", "js" to "javascript", "lua" to "lua").forEach { (tag, mapped) ->
-                    val bg = if (lang == mapped) Color(0xFF1A3A1A) else Color.Transparent
-                    Text(tag, color = if (lang == mapped) TERM_PROMPT else TERM_DIM,
-                        fontSize = 11.sp, fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.background(bg).padding(horizontal = 4.dp))
-                }
+                Text(cwd, color = TERM_DIM, fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace, maxLines = 1)
             }
+            // 输出区
             Column(modifier = Modifier.weight(1f).fillMaxWidth()
-                .verticalScroll(scrollState).padding(horizontal = 10.dp, vertical = 8.dp)) {
+                .verticalScroll(scrollState).padding(horizontal = 10.dp, vertical = 6.dp)) {
                 logs.forEach { line ->
                     when (line) {
-                        is TermLine.Prompt -> Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                            Text("jif:", color = TERM_PROMPT, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                            Text(line.cwd, color = TERM_ACCENT, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                            Text(" ${line.lang} $ ", color = TERM_DIM, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                            Text(line.cmd, color = TERM_FG, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                        is TermLine.Prompt -> Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
+                            Text("jif:", color = TERM_PROMPT, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                            Text(line.cwd, color = TERM_ACCENT, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                            Text("> ", color = TERM_DIM, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                            Text(line.cmd, color = TERM_FG, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                         }
-                        is TermLine.Output -> Text(line.text,
+                        is TermLine.Output -> Text(
+                            text = line.text,
                             color = if (line.isError) TERM_ERR else TERM_FG,
-                            fontSize = 12.sp, fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(top = 2.dp))
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.padding(top = 1.dp)
+                        )
                     }
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF0A0A0A))
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("jif:$cwd>", color = TERM_PROMPT, fontSize = 11.sp,
+            // 输入栏
+            Row(modifier = Modifier.fillMaxWidth().background(TERM_BAR)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("jif:${cwd}>", color = TERM_PROMPT, fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace, maxLines = 1)
-                BasicTextField(value = input, onValueChange = { input = it },
+                Spacer(Modifier.width(4.dp))
+                BasicTextField(
+                    value = input,
+                    onValueChange = { input = it },
                     modifier = Modifier.weight(1f).background(Color.Transparent),
-                    textStyle = TextStyle(color = TERM_FG, fontSize = 13.sp, fontFamily = FontFamily.Monospace),
-                    maxLines = 4, keyboardOptions = KeyboardOptions.Default,
+                    textStyle = TextStyle(color = TERM_FG, fontSize = 14.sp, fontFamily = FontFamily.Monospace),
+                    singleLine = false,
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions.Default,
                     cursorBrush = SolidColor(TERM_PROMPT),
                     decorationBox = { inner ->
-                        if (input.isEmpty()) Text("输入命令...", color = TERM_DIM,
-                            fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                        if (input.isEmpty()) Text("输入命令 (Linux/Windows 均可)...",
+                            color = TERM_DIM, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                         inner()
-                    })
+                    }
+                )
                 IconButton(onClick = {
                     if (input.isNotBlank() && !isRunning) {
-                        var cmd = input; var tl = lang
-                        when {
-                            cmd.startsWith(":py ") -> { tl = "python"; cmd = cmd.removePrefix(":py ") }
-                            cmd.startsWith(":js ") -> { tl = "javascript"; cmd = cmd.removePrefix(":js ") }
-                            cmd.startsWith(":lua ") -> { tl = "lua"; cmd = cmd.removePrefix(":lua ") }
-                        }
-                        input = ""
-                        if (cmd.isNotBlank()) runCommand(cmd, tl)
+                        val c = input; input = ""; runCommand(c)
                     }
                 }, enabled = input.isNotBlank() && !isRunning) {
                     Icon(Icons.Filled.Send, contentDescription = "执行", tint = TERM_PROMPT)
@@ -170,6 +180,6 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
 }
 
 private sealed class TermLine {
-    data class Prompt(val cwd: String, val lang: String, val cmd: String) : TermLine()
+    data class Prompt(val cwd: String, val cmd: String) : TermLine()
     data class Output(val text: String, val isError: Boolean) : TermLine()
 }

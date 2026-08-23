@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -29,70 +27,102 @@ import androidx.compose.ui.unit.dp
 import com.jifeng.toolbox.ui.theme.JFColors
 
 /**
- * 真·液态玻璃卡片 v3。
+ * 真·液态玻璃 v4 — HyperOS 4 风格, 清澈透底。
  *
- * 多层组合:
- *  1. 底层: 对角渐变 (左上微亮 → 右下微暗), 模拟玻璃折射
- *  2. 中层: 主题 surface 半透明, 形成玻璃厚度
- *  3. 顶部 1px 高光线 (从左到右渐隐), 模拟上边缘反光
- *  4. 外边框: 极细半透明白边 + 内描边感 (通过 border 完成)
- *
- * 全部使用纯 Compose draw 实现, 不依赖 RenderEffect (兼容 API 21+)。
+ * 设计要点:
+ *  - 表面主色 alpha 0.08~0.12 (几乎透明, 让背景强烈透出)
+ *  - 顶部 1px 白色高光线 (玻璃上边缘反光)
+ *  - 内部对角极淡折射渐变 (模拟玻璃厚度)
+ *  - 边框: 上/左亮, 下/右暗 (玻璃边缘光差)
+ *  - 左上角径向高光 (光源反射)
+ *  - 不依赖任何 blur API, 纯 Compose draw, minSdk 21 兼容
  */
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 22.dp,
+    cornerRadius: Dp = 26.dp,
     padding: Dp = 0.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     val scheme = MaterialTheme.colorScheme
     val isLight = scheme.surface.red > 0.5f
-    // 根据明暗模式调整玻璃层颜色
-    val baseTop = if (isLight) Color.White.copy(alpha = 0.55f) else Color(0xFF2A2D3A).copy(alpha = 0.55f)
-    val baseBottom = if (isLight) Color.White.copy(alpha = 0.25f) else Color(0xFF14161F).copy(alpha = 0.55f)
-    val highlight = if (isLight) Color.White.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.18f)
-    val borderColor = if (isLight) Color.White.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.10f)
+
+    // 清澈透底: 主表面 alpha 极低
+    val surfaceAlpha = if (isLight) 0.10f else 0.08f
+    val surfaceColor = if (isLight) Color.White else Color.White
+    val topHighlight = Color.White.copy(alpha = if (isLight) 0.7f else 0.25f)
+    val edgeGlow = Color.White.copy(alpha = if (isLight) 0.5f else 0.12f)
+    val refractionTop = if (isLight) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.06f)
+    val refractionBottom = if (isLight) Color.Black.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.12f)
+    val radialGlow = if (isLight) Color.White.copy(alpha = 0.18f) else Color(0xFF6FA8FF).copy(alpha = 0.10f)
+    val borderColor = if (isLight) Color.White.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.10f)
 
     Box(modifier = modifier) {
-        // 底层: 对角折射渐变 (通过 drawBehind 自己画)
         Surface(
             modifier = Modifier.fillMaxWidth().drawBehind {
                 val r = cornerRadius.toPx()
-                // 边缘环境光: 左上亮、右下暗
-                val glassBrush = Brush.linearGradient(
-                    colors = listOf(baseTop, baseBottom),
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, size.height)
-                )
-                drawRoundRect(glassBrush, cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r))
-                // 顶部 1.5px 高光线
-                val hLine = Brush.horizontalGradient(
-                    0f to highlight,
-                    0.5f to highlight.copy(alpha = highlight.alpha * 0.4f),
-                    1f to Color.Transparent
-                )
+                val cr = androidx.compose.ui.geometry.CornerRadius(r, r)
+
+                // 1. 极淡对角折射渐变 (玻璃厚度感)
                 drawRoundRect(
-                    hLine,
-                    topLeft = Offset(0f, 0f),
-                    size = androidx.compose.ui.geometry.Size(size.width, 1.4f.dp.toPx()),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
-                )
-                // 左上角高光团
-                val glow = Brush.radialGradient(
-                    colors = listOf(
-                        (if (isLight) Color.White else Color(0xFF6FA8FF)).copy(alpha = 0.22f),
-                        Color.Transparent
+                    brush = Brush.linearGradient(
+                        colors = listOf(refractionTop, refractionBottom),
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width, size.height)
                     ),
-                    center = Offset(size.width * 0.2f, size.height * 0.15f),
-                    radius = size.minDimension * 0.65f
+                    cornerRadius = cr
                 )
-                drawRoundRect(glow, cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r))
+
+                // 2. 顶部高光线 (上边缘反光, 1.2px)
+                drawRoundRect(
+                    brush = Brush.horizontalGradient(
+                        0f to topHighlight,
+                        0.4f to topHighlight.copy(alpha = topHighlight.alpha * 0.5f),
+                        1f to Color.Transparent
+                    ),
+                    topLeft = Offset(0f, 0f),
+                    size = androidx.compose.ui.geometry.Size(size.width, 1.2f.dp.toPx()),
+                    cornerRadius = cr
+                )
+
+                // 3. 左侧高光线
+                drawRoundRect(
+                    brush = Brush.verticalGradient(
+                        0f to edgeGlow,
+                        0.5f to edgeGlow.copy(alpha = edgeGlow.alpha * 0.3f),
+                        1f to Color.Transparent
+                    ),
+                    topLeft = Offset(0f, 0f),
+                    size = androidx.compose.ui.geometry.Size(0.8f.dp.toPx(), size.height),
+                    cornerRadius = cr
+                )
+
+                // 4. 左上角径向高光 (光源反射点)
+                drawRoundRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(radialGlow, Color.Transparent),
+                        center = Offset(size.width * 0.18f, size.height * 0.12f),
+                        radius = size.minDimension * 0.7f
+                    ),
+                    cornerRadius = cr
+                )
+
+                // 5. 底部暗边 (玻璃厚度阴影)
+                val bottomShadow = if (isLight) Color.Black.copy(alpha = 0.04f) else Color.Black.copy(alpha = 0.18f)
+                drawRoundRect(
+                    brush = Brush.horizontalGradient(
+                        0f to Color.Transparent,
+                        0.5f to bottomShadow,
+                        1f to Color.Transparent
+                    ),
+                    topLeft = Offset(0f, size.height - 0.8f.dp.toPx()),
+                    size = androidx.compose.ui.geometry.Size(size.width, 0.8f.dp.toPx()),
+                    cornerRadius = cr
+                )
             },
             shape = shape,
-            // 中层: surface 半透明 + 边框
-            color = scheme.surface.copy(alpha = 0.35f),
+            color = surfaceColor.copy(alpha = surfaceAlpha),
             border = BorderStroke(0.8f.dp, borderColor),
             tonalElevation = 0.dp,
             shadowElevation = 0.dp
@@ -106,11 +136,9 @@ fun LiquidGlassCard(
 }
 
 /**
- * 全局液态玻璃背景。
+ * 全局液态玻璃背景 v4 — HyperOS 4 风格。
  *
- * 用多层径向渐变叠加模拟 Apple Liquid Glass 海报感:
- *  - 背景底色
- *  - 左上、右下、中部三个彩色光斑
+ * 深色基底 + 多色径向光斑, 让玻璃卡片"透"出色彩。
  */
 @Composable
 fun LiquidGlassBackground(
@@ -125,33 +153,37 @@ fun LiquidGlassBackground(
             .background(
                 Brush.verticalGradient(
                     colors = if (isLight) listOf(
-                        Color(0xFFF0F3FA),
-                        Color(0xFFE6EBF5),
-                        Color(0xFFDDE3F0)
+                        Color(0xFFE8ECF5),
+                        Color(0xFFDDE3F0),
+                        Color(0xFFD5DCEC)
                     ) else listOf(
-                        Color(0xFF0A0B12),
-                        Color(0xFF0E1020),
-                        Color(0xFF141828)
+                        Color(0xFF06070C),
+                        Color(0xFF0A0D1A),
+                        Color(0xFF0E1224)
                     )
                 )
             )
             .drawBehind {
                 fun glow(c: Color, x: Float, y: Float, r: Float, alpha: Float) {
-                    val b = Brush.radialGradient(
-                        colors = listOf(c.copy(alpha = alpha), Color.Transparent),
-                        center = Offset(size.width * x, size.height * y),
-                        radius = size.minDimension * r
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(c.copy(alpha = alpha), Color.Transparent),
+                            center = Offset(size.width * x, size.height * y),
+                            radius = size.minDimension * r
+                        )
                     )
-                    drawRect(b)
                 }
                 if (isLight) {
-                    glow(JFColors.BrandGradientStart, 0.15f, 0.1f, 0.9f, 0.35f)
-                    glow(JFColors.BrandGradientEnd, 0.9f, 0.85f, 0.9f, 0.28f)
-                    glow(Color(0xFFFFD9A8), 0.6f, 0.4f, 0.7f, 0.20f)
+                    glow(Color(0xFF6B7BFF), 0.12f, 0.08f, 1.0f, 0.28f)
+                    glow(Color(0xFF8B9CFF), 0.92f, 0.88f, 1.0f, 0.22f)
+                    glow(Color(0xFFFFB88C), 0.55f, 0.45f, 0.8f, 0.15f)
+                    glow(Color(0xFF8CE0FF), 0.8f, 0.2f, 0.7f, 0.12f)
                 } else {
-                    glow(JFColors.BrandGradientStart, 0.18f, 0.15f, 0.95f, 0.30f)
-                    glow(JFColors.BrandGradientEnd, 0.85f, 0.8f, 0.95f, 0.28f)
-                    glow(Color(0xFF7B61FF), 0.55f, 0.55f, 0.7f, 0.18f)
+                    glow(Color(0xFF4B5BFF), 0.15f, 0.12f, 1.1f, 0.35f)
+                    glow(Color(0xFF7B6BFF), 0.88f, 0.85f, 1.0f, 0.30f)
+                    glow(Color(0xFFB06BFF), 0.5f, 0.5f, 0.8f, 0.20f)
+                    glow(Color(0xFF4B9BFF), 0.82f, 0.25f, 0.7f, 0.15f)
+                    glow(Color(0xFFFF7BA8), 0.18f, 0.8f, 0.6f, 0.12f)
                 }
             }
     ) {
@@ -160,7 +192,7 @@ fun LiquidGlassBackground(
 }
 
 /**
- * 玻璃胶囊按钮 v2: 带顶部高光。
+ * 玻璃胶囊按钮 v4 — HyperOS 4 风格, 清澈通透。
  */
 @Composable
 fun GlassCapsuleButton(
@@ -168,15 +200,20 @@ fun GlassCapsuleButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val isLight = scheme.surface.red > 0.5f
+    val bgAlpha = if (isLight) 0.18f else 0.12f
+    val strokeAlpha = if (isLight) 0.4f else 0.20f
+
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = JFColors.Brand.copy(alpha = 0.14f),
-        border = BorderStroke(0.8f.dp, JFColors.Brand.copy(alpha = 0.35f))
+        shape = RoundedCornerShape(22.dp),
+        color = JFColors.Brand.copy(alpha = bgAlpha),
+        border = BorderStroke(0.8f.dp, JFColors.Brand.copy(alpha = strokeAlpha))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -189,12 +226,12 @@ fun GlassCapsuleButton(
 }
 
 /**
- * 可点击的液态玻璃卡片 v3。
+ * 可点击的液态玻璃卡片 v4。
  */
 @Composable
 fun LiquidGlassClickableCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 22.dp,
+    cornerRadius: Dp = 26.dp,
     padding: Dp = 0.dp,
     onClick: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit
@@ -202,48 +239,72 @@ fun LiquidGlassClickableCard(
     val shape = RoundedCornerShape(cornerRadius)
     val scheme = MaterialTheme.colorScheme
     val isLight = scheme.surface.red > 0.5f
-    val baseTop = if (isLight) Color.White.copy(alpha = 0.55f) else Color(0xFF2A2D3A).copy(alpha = 0.55f)
-    val baseBottom = if (isLight) Color.White.copy(alpha = 0.25f) else Color(0xFF14161F).copy(alpha = 0.55f)
-    val highlight = if (isLight) Color.White.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.18f)
-    val borderColor = if (isLight) Color.White.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.10f)
+
+    val surfaceAlpha = if (isLight) 0.10f else 0.08f
+    val surfaceColor = Color.White
+    val topHighlight = Color.White.copy(alpha = if (isLight) 0.7f else 0.25f)
+    val edgeGlow = Color.White.copy(alpha = if (isLight) 0.5f else 0.12f)
+    val refractionTop = if (isLight) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.06f)
+    val refractionBottom = if (isLight) Color.Black.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.12f)
+    val radialGlow = if (isLight) Color.White.copy(alpha = 0.18f) else Color(0xFF6FA8FF).copy(alpha = 0.10f)
+    val borderColor = if (isLight) Color.White.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.10f)
 
     Box(modifier = modifier) {
         Surface(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth().drawBehind {
                 val r = cornerRadius.toPx()
+                val cr = androidx.compose.ui.geometry.CornerRadius(r, r)
                 drawRoundRect(
                     Brush.linearGradient(
-                        colors = listOf(baseTop, baseBottom),
+                        colors = listOf(refractionTop, refractionBottom),
                         start = Offset(0f, 0f),
                         end = Offset(size.width, size.height)
                     ),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+                    cornerRadius = cr
                 )
                 drawRoundRect(
                     Brush.horizontalGradient(
-                        0f to highlight,
-                        0.5f to highlight.copy(alpha = highlight.alpha * 0.4f),
+                        0f to topHighlight,
+                        0.4f to topHighlight.copy(alpha = topHighlight.alpha * 0.5f),
                         1f to Color.Transparent
                     ),
                     topLeft = Offset(0f, 0f),
-                    size = androidx.compose.ui.geometry.Size(size.width, 1.4f.dp.toPx()),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+                    size = androidx.compose.ui.geometry.Size(size.width, 1.2f.dp.toPx()),
+                    cornerRadius = cr
+                )
+                drawRoundRect(
+                    Brush.verticalGradient(
+                        0f to edgeGlow,
+                        0.5f to edgeGlow.copy(alpha = edgeGlow.alpha * 0.3f),
+                        1f to Color.Transparent
+                    ),
+                    topLeft = Offset(0f, 0f),
+                    size = androidx.compose.ui.geometry.Size(0.8f.dp.toPx(), size.height),
+                    cornerRadius = cr
                 )
                 drawRoundRect(
                     Brush.radialGradient(
-                        colors = listOf(
-                            (if (isLight) Color.White else Color(0xFF6FA8FF)).copy(alpha = 0.22f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width * 0.2f, size.height * 0.15f),
-                        radius = size.minDimension * 0.65f
+                        colors = listOf(radialGlow, Color.Transparent),
+                        center = Offset(size.width * 0.18f, size.height * 0.12f),
+                        radius = size.minDimension * 0.7f
                     ),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+                    cornerRadius = cr
+                )
+                val bottomShadow = if (isLight) Color.Black.copy(alpha = 0.04f) else Color.Black.copy(alpha = 0.18f)
+                drawRoundRect(
+                    Brush.horizontalGradient(
+                        0f to Color.Transparent,
+                        0.5f to bottomShadow,
+                        1f to Color.Transparent
+                    ),
+                    topLeft = Offset(0f, size.height - 0.8f.dp.toPx()),
+                    size = androidx.compose.ui.geometry.Size(size.width, 0.8f.dp.toPx()),
+                    cornerRadius = cr
                 )
             },
             shape = shape,
-            color = scheme.surface.copy(alpha = 0.35f),
+            color = surfaceColor.copy(alpha = surfaceAlpha),
             border = BorderStroke(0.8f.dp, borderColor),
             tonalElevation = 0.dp,
             shadowElevation = 0.dp

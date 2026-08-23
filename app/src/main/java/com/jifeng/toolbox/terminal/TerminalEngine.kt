@@ -280,4 +280,5 @@ object TerminalEngine {
         p.inputStream.bufferedReader().readText().trim().ifBlank { null }
     } catch (_: Exception) { null }
 
-    fun resetLlmEnv() { llmEnv = null
+    fun resetLlmEnv() { llmEnv = null }
+}

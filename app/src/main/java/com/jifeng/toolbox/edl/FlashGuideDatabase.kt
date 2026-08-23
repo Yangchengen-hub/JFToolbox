@@ -193,7 +193,7 @@ object FlashGuideDatabase {
                     listOf("$GIT_MAIN/sm8350/prog_firehose_sm8350.elf")),
                 LoaderSource("SM6115 (畅享低端)", "prog_firehose_sm6115.elf",
                     listOf("$GIT_MAIN/sm6115/prog_firehose_sm6115.elf"))
-            ],
+            ),
             toolHints = listOf(
                 "bkerler/edl (仅高通机型)",
                 "QFIL (高通 Windows)",

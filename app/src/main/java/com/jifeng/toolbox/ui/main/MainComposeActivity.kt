@@ -172,9 +172,18 @@ class MainComposeActivity : ComponentActivity() {
         var device by remember { mutableStateOf<DeviceInfo?>(null) }
         var loading by remember { mutableStateOf(false) }
 
-        androidx.compose.runtime.LaunchedEffect(Unit) {
-            if (usbState == UsbDeviceManager.State.DISCONNECTED) usbMgr.scanAndConnect()
+        // 每次回到主页都扫描 (设备可能在别的页面授权/插入)
+        val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+        androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    usbMgr.scanAndConnect()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
+        val discovered by usbMgr.discoveredDevices.collectAsState()
 
         androidx.compose.runtime.LaunchedEffect(usbState) {
             if (usbState == UsbDeviceManager.State.CONNECTED) {
@@ -199,8 +208,17 @@ class MainComposeActivity : ComponentActivity() {
             DeviceHeader(
                 device = device,
                 usbState = usbState,
+                discoveredCount = discovered.size,
+                discoveredDesc = discovered.firstOrNull()?.let { d ->
+                    "vid=0x${d.vendorId.toString(16)} pid=0x${d.productId.toString(16)} · ${usbMgr.getDeviceTypeLabel(d)}"
+                },
                 loading = loading,
                 onRefresh = { usbMgr.scanAndConnect() },
+                onManualConnect = {
+                    discovered.firstOrNull { usbMgr.isAdbDevice(it) }
+                        ?.let { usbMgr.requestPermission(it) }
+                        ?: discovered.firstOrNull()?.let { usbMgr.requestPermission(it) }
+                },
                 onOpenPhoneInfo = {
                     device?.let {
                         PhoneInfoComposeActivity.device = it
@@ -256,8 +274,11 @@ class MainComposeActivity : ComponentActivity() {
     private fun DeviceHeader(
         device: DeviceInfo?,
         usbState: UsbDeviceManager.State,
+        discoveredCount: Int,
+        discoveredDesc: String?,
         loading: Boolean,
         onRefresh: () -> Unit,
+        onManualConnect: () -> Unit,
         onOpenPhoneInfo: () -> Unit,
         onReboot: (String) -> Unit
     ) {
@@ -292,13 +313,27 @@ class MainComposeActivity : ComponentActivity() {
                 AnimatedVisibility(visible = true, enter = fadeIn(tween(HyperOSMotion.durationMedium)), exit = fadeOut(tween(HyperOSMotion.durationMedium))) {
                     when {
                         loading -> Text("正在全量探测设备...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        device == null -> Text(
-                            when (usbState) {
-                                UsbDeviceManager.State.REQUESTING -> "请在系统弹窗中授权 USB 调试..."
-                                UsbDeviceManager.State.CONNECTING -> "正在建立 ADB 连接..."
-                                UsbDeviceManager.State.FAILED -> "连接失败, 请检查 OTG 线与被控端 USB 调试设置"
-                                else -> "未检测到设备\n请通过 OTG 线连接被控设备并授权 USB 调试"
-                            }, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        device == null -> Column {
+                            Text(
+                                when (usbState) {
+                                    UsbDeviceManager.State.REQUESTING -> "请在系统弹窗中授权 USB 调试..."
+                                    UsbDeviceManager.State.CONNECTING -> "正在建立 ADB 连接..."
+                                    UsbDeviceManager.State.FAILED -> "连接失败, 请检查 OTG 线与被控端 USB 调试开关"
+                                    else -> if (discoveredCount > 0) "发现 $discoveredCount 台 USB 设备, 点击右侧「连接」授权"
+                                             else "未检测到设备\n请通过 OTG 线连接被控设备并开启 USB 调试"
+                                }, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (discoveredCount > 0 && usbState != UsbDeviceManager.State.REQUESTING &&
+                                usbState != UsbDeviceManager.State.CONNECTING) {
+                                Spacer(Modifier.height(8.dp))
+                                GlassCapsuleButton(if (usbState == UsbDeviceManager.State.FAILED) "重试连接" else "连接设备",
+                                    onManualConnect)
+                                if (!discoveredDesc.isNullOrBlank()) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(discoveredDesc, style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
                         else -> Column {
                             Text(device!!.displayName, style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)

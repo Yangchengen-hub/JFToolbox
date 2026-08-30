@@ -46,8 +46,7 @@ class TerminalComposeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val autoCommand = intent?.getStringExtra("auto_command")
-        val autoLang = intent?.getStringExtra("auto_lang") ?: "shell"
-        setContent { JFTheme { TerminalScreen(autoCommand, autoLang) } }
+        setContent { JFTheme { TerminalScreen(autoCommand) } }
     }
 }
 
@@ -61,13 +60,14 @@ private val TERM_BAR = Color(0xFF0A0A0A)
 private val TERM_BAR_DIVIDER = Color(0xFF1A1A1A)
 
 @Composable
-private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shell") {
+private fun TerminalScreen(autoCommand: String? = null) {
     val scope = rememberCoroutineScope()
-    var lang by remember { mutableStateOf("shell") }
     var isRunning by remember { mutableStateOf(false) }
     val logs = remember { mutableStateListOf<TermLine>() }
     var input by remember { mutableStateOf("") }
-    var cwd by remember { mutableStateOf("/") }
+    var cwd by remember { mutableStateOf(TerminalEngine.currentDir()) }
+    val history = remember { mutableStateListOf<String>() }
+    var historyIdx by remember { mutableStateOf(-1) }
     val scrollState = rememberScrollState()
 
     fun append(line: TermLine) {
@@ -75,33 +75,30 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
         scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
     }
 
+    fun clearScreen() {
+        logs.clear()
+    }
+
     fun runCommand(raw: String) {
-        if (raw.isBlank() || isRunning) return
-        // 前缀语言切换
-        var cmd = raw.trim()
-        var targetLang = "shell"
-        when {
-            cmd.startsWith(":py ") -> { targetLang = "python"; cmd = cmd.removePrefix(":py ").trim() }
-            cmd.startsWith(":js ") -> { targetLang = "javascript"; cmd = cmd.removePrefix(":js ").trim() }
-            cmd.startsWith(":lua ") -> { targetLang = "lua"; cmd = cmd.removePrefix(":lua ").trim() }
-            cmd.startsWith(":c ") -> { targetLang = "c/c++"; cmd = cmd.removePrefix(":c ").trim() }
-        }
-        if (cmd.isBlank()) return
-        lang = targetLang
-        append(TermLine.Prompt(cwd, cmd))
+        val cmd = raw.trim()
+        if (cmd.isBlank() || isRunning) return
+        append(TermLine.Prompt(TerminalEngine.currentDir(), cmd))
+        if (history.isEmpty() || history.last() != cmd) history.add(cmd)
+        historyIdx = history.size
         isRunning = true
         scope.launch {
-            val r = TerminalEngine.execute(targetLang, cmd)
-            val isErr = r.output.contains("[exit=") && !r.output.contains("[exit=0]") ||
-                r.output.startsWith("错误") || r.output.startsWith("Shell")
-            if (r.output.isNotBlank()) append(TermLine.Output(r.output, isErr))
+            val r = TerminalEngine.run(cmd)
+            if (r.clearScreen) {
+                clearScreen()
+            } else if (r.output.isNotBlank()) {
+                append(TermLine.Output(r.output, r.isError))
+            }
             cwd = TerminalEngine.currentDir()
             isRunning = false
-            lang = "shell"
         }
     }
 
-    // 打开即显示 banner
+    // 打开即显示极简 banner (不执行任何阻塞命令)
     LaunchedEffect(Unit) {
         cwd = TerminalEngine.currentDir()
         append(TermLine.Output(TerminalEngine.banner(), false))
@@ -126,12 +123,13 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
             }
             // 输出区
             Column(modifier = Modifier.weight(1f).fillMaxWidth()
-                .verticalScroll(scrollState).padding(horizontal = 10.dp, vertical = 6.dp)) {
+                .verticalScroll(scrollState).padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 logs.forEach { line ->
                     when (line) {
-                        is TermLine.Prompt -> Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
+                        is TermLine.Prompt -> Row(modifier = Modifier.fillMaxWidth()) {
                             Text("jif:", color = TERM_PROMPT, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
-                            Text(line.cwd, color = TERM_ACCENT, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                            Text(shortPath(line.cwd), color = TERM_ACCENT, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                             Text("> ", color = TERM_DIM, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                             Text(line.cmd, color = TERM_FG, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                         }
@@ -139,8 +137,7 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
                             text = line.text,
                             color = if (line.isError) TERM_ERR else TERM_FG,
                             fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(top = 1.dp)
+                            fontFamily = FontFamily.Monospace
                         )
                     }
                 }
@@ -149,7 +146,7 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
             Row(modifier = Modifier.fillMaxWidth().background(TERM_BAR)
                 .padding(horizontal = 10.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Text("jif:${cwd}>", color = TERM_PROMPT, fontSize = 12.sp,
+                Text("jif:${shortPath(cwd)}>", color = TERM_PROMPT, fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace, maxLines = 1)
                 Spacer(Modifier.width(4.dp))
                 BasicTextField(
@@ -162,7 +159,7 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
                     keyboardOptions = KeyboardOptions.Default,
                     cursorBrush = SolidColor(TERM_PROMPT),
                     decorationBox = { inner ->
-                        if (input.isEmpty()) Text("输入命令 (Linux/Windows 均可)...",
+                        if (input.isEmpty()) Text("输入命令...  help 查看用法",
                             color = TERM_DIM, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                         inner()
                     }
@@ -177,6 +174,17 @@ private fun TerminalScreen(autoCommand: String? = null, autoLang: String = "shel
             }
         }
     }
+}
+
+/** 路径过长时折叠显示: /sdcard/Download/a/b → /sdcard/.../a/b */
+private fun shortPath(p: String): String {
+    if (p.length <= 24) return p
+    val head = p.substringBefore("/", "")
+    val segments = p.trim('/').split("/")
+    if (segments.size <= 3) return p
+    val first = segments.first()
+    val tail = segments.takeLast(2).joinToString("/")
+    return "/$first/.../$tail"
 }
 
 private sealed class TermLine {

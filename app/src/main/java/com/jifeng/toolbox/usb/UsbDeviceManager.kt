@@ -326,24 +326,33 @@ class UsbDeviceManager private constructor(private val app: Context) {
         /**
          * 已知 ADB 设备的 Vendor ID 白名单。
          * 用于放宽非标准接口的匹配 (Google旧版ADB / CDC-ACM / vendor-specific)。
+         * 注意: binarySearch 要求数组升序, 必须保持有序!
          */
         private val KNOWN_ADB_VENDORS = intArrayOf(
-            0x18d1, // Google
-            0x2717, // 小米 (Xiaomi)
             0x04e8, // 三星 (Samsung)
-            0x22d9, // OPPO
-            0x2d95, // vivo
-            0x12d1, // 华为 (Huawei)
             0x05c6, // 一加/高通 (OnePlus / Qualcomm)
-            0x17ef, // 联想 (Lenovo)
+            0x0bb4, // HTC
             0x0e8d, // MTK (MediaTek)
             0x0fce, // 索尼 (Sony)
+            0x1004, // LG
+            0x12d1, // 华为 (Huawei)
+            0x17ef, // 联想 (Lenovo)
+            0x18d1, // Google
+            0x19d2, // 中兴 (ZTE)
             0x22b8, // 摩托罗拉 (Motorola)
-            0x2B0E, // Nothing
-            0x2A45  // 魅族 (Meizu)
+            0x22d9, // OPPO
+            0x24e3, // 红米 K 系列部分 / Motorola 补充
+            0x2717, // 小米 (Xiaomi)
+            0x2a45, // 魅族 (Meizu)
+            0x2a70, // OnePlus 补充 VID
+            0x2b0e, // Nothing
+            0x2d95, // vivo
+            0x2e04, // 真我 realme (部分机型)
+            0x0489, // Foxconn/夏普 (部分平板)
+            0x1949  // 展锐 Unisoc / 部分国产
         )
 
-        /** 检查是否为已知 ADB 厂商 VID。 */
+        /** 检查是否为已知 ADB 厂商 VID (数组已升序, 可直接 binarySearch)。 */
         fun isKnownAdbVendor(vendorId: Int): Boolean =
             KNOWN_ADB_VENDORS.binarySearch(vendorId) >= 0
 

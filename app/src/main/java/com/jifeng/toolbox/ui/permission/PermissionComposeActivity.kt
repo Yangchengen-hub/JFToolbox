@@ -23,12 +23,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Usb
-import androidx.compose.material.icons.filled.Window
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -37,8 +34,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,6 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jifeng.toolbox.ui.components.LiquidGlassCard
@@ -57,10 +59,16 @@ class PermissionComposeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { JFTheme { PermissionScreen(onProceed = { proceedToMain() }) } }
+        setContent {
+            JFTheme {
+                PermissionScreen(
+                    onProceed = { proceedToMain() }
+                )
+            }
+        }
     }
 
-    /** 标记权限已询问过, 跳转主页。 */
+    /** 跳转主页 (用户主动点击, 不再自动跳转)。 */
     private fun proceedToMain() {
         getSharedPreferences(DisclaimerComposeActivity.PREFS, MODE_PRIVATE)
             .edit()
@@ -73,17 +81,20 @@ class PermissionComposeActivity : ComponentActivity() {
     }
 }
 
-private data class PermInfo(
+private enum class PermState { GRANTED, PENDING }
+
+private data class SpecialPerm(
     val title: String,
     val purpose: String,
-    val icon: ImageVector
+    val isGranted: () -> Boolean,
+    val grant: () -> Unit
 )
 
 @Composable
 private fun PermissionScreen(onProceed: () -> Unit) {
     val ctx = LocalContext.current
 
-    // 运行时权限列表 (需要弹窗请求的)
+    // 运行时权限 (系统弹窗逐个请求)
     val runtimePerms: List<String> = remember {
         buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -98,195 +109,192 @@ private fun PermissionScreen(onProceed: () -> Unit) {
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
-            // INTERNET / NETWORK / WIFI 是 normal 权限, 安装时自动授予, 不需请求
         }
     }
 
-    val permInfos: List<PermInfo> = remember {
-        buildList {
-            add(PermInfo("网络权限 (INTERNET)",
-                "用于固件下载、GitHub API 访问、酷安社区 ROM 源检索。",
-                Icons.Default.Notifications))
-            add(PermInfo("网络状态",
-                "检测网络连接状态, 优化下载策略。",
-                Icons.Default.Notifications))
-            add(PermInfo("WiFi 状态",
-                "获取 WiFi 信息, 支持无线调试配对。",
-                Icons.Default.Notifications))
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                add(PermInfo("通知权限 (POST_NOTIFICATIONS)",
-                    "用于显示刷机进度、下载完成、ADB 守护服务等前台通知。",
-                    Icons.Default.Notifications))
-                add(PermInfo("媒体访问 (READ_MEDIA_*)",
-                    "读取设备中的图片、视频、音频, 用于备份与刷写。",
-                    Icons.Default.Apps))
-            }
-            if (Build.VERSION.SDK_INT in Build.VERSION_CODES.R..Build.VERSION_CODES.S_V2) {
-                add(PermInfo("所有文件访问 (MANAGE_EXTERNAL_STORAGE)",
-                    "读写刷机包、备份文件、日志到公共存储。",
-                    Icons.Default.Folder))
-                add(PermInfo("存储读取",
-                    "读取设备存储中的刷机包与备份文件。",
-                    Icons.Default.Folder))
-            }
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-                add(PermInfo("存储读写",
-                    "读写刷机包、备份文件到设备存储。",
-                    Icons.Default.Folder))
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                add(PermInfo("悬浮窗权限 (SYSTEM_ALERT_WINDOW)",
-                    "用于显示 ADB 授权悬浮窗、通知栏快速配对、屏幕镜像。",
-                    Icons.Default.Window))
-            }
-            add(PermInfo("USB 权限",
-                "连接 USB OTG 设备时由系统弹窗索取, 本页面仅作提示。",
-                Icons.Default.Usb))
-            add(PermInfo("应用安装权限",
-                "用于安装下载的 APK 刷机包。",
-                Icons.Default.Apps))
+    // 特殊权限 (需要跳设置页, 返回到本页时重新检测状态)
+    fun buildSpecialPerms(): List<SpecialPerm> = buildList {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            add(SpecialPerm(
+                "所有文件访问",
+                "读写刷机包、备份文件、终端文件管理 (终端默认打开内部存储)",
+                isGranted = { Environment.isExternalStorageManager() },
+                grant = {
+                    try {
+                        ctx.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                            .apply { data = Uri.parse("package:${ctx.packageName}") })
+                    } catch (_: Exception) {
+                        runCatching { ctx.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) }
+                    }
+                }
+            ))
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            add(SpecialPerm(
+                "悬浮窗",
+                "显示 ADB 授权悬浮窗、通知栏快速配对、屏幕镜像",
+                isGranted = { Settings.canDrawOverlays(ctx) },
+                grant = {
+                    runCatching {
+                        ctx.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${ctx.packageName}")))
+                    }
+                }
+            ))
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            add(SpecialPerm(
+                "安装未知应用",
+                "安装下载的 APK 刷机包",
+                isGranted = { ctx.packageManager.canRequestPackageInstalls() },
+                grant = {
+                    runCatching {
+                        ctx.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:${ctx.packageName}")))
+                    }
+                }
+            ))
         }
     }
 
-    // 权限请求状态机
-    var permIndex by remember { mutableStateOf(-1) }
-    var step by remember { mutableStateOf(0) } // 0=未开始, 1=运行时权限中, 2=特殊权限中, 3=完成
-    var hasNextStep by remember { mutableStateOf(true) }
+    // 每次回到页面 (从设置页返回) 自动刷新权限状态
+    var refreshTick by remember { mutableIntStateOf(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshTick++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val specialPerms = remember(refreshTick) { buildSpecialPerms() }
+    val runtimeGranted = remember(refreshTick) {
+        runtimePerms.all {
+            ctx.checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    var runtimeRequested by remember { mutableStateOf(false) }
+    var requestTick by remember { mutableIntStateOf(0) }
 
     val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestMultiplePermissions()
     ) {
-        permIndex++
+        // 弹窗结束, 刷新状态
+        runtimeRequested = true
+        refreshTick++
     }
 
-    // 运行时权限链式请求
-    LaunchedEffect(permIndex) {
-        when {
-            permIndex in runtimePerms.indices -> {
-                permLauncher.launch(runtimePerms[permIndex])
-            }
-            permIndex >= runtimePerms.size && permIndex != -1 && step == 1 -> {
-                // 运行时权限完成, 进入特殊权限阶段
-                step = 2
-            }
+    // 点「一键授予运行时权限」时发起请求
+    LaunchedEffect(requestTick) {
+        if (requestTick > 0 && !runtimeGranted) {
+            val pending = runtimePerms.filter {
+                ctx.checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            }.toTypedArray()
+            if (pending.isNotEmpty()) permLauncher.launch(pending)
         }
     }
 
-    // 特殊权限阶段: 依次引导存储 → 悬浮窗 → 安装未知应用
-    LaunchedEffect(step) {
-        if (step == 2) {
-            var pending = false
-            // 存储管理权限
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                !Environment.isExternalStorageManager()
-            ) {
-                pending = true
-                try {
-                    val intent = Intent(
-                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
-                    ).apply { data = Uri.parse("package:${ctx.packageName}") }
-                    ctx.startActivity(intent)
-                } catch (_: Exception) {
-                    try {
-                        ctx.startActivity(
-                            Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                        )
-                    } catch (_: Exception) {}
-                }
-            }
-            // 悬浮窗权限
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                !Settings.canDrawOverlays(ctx)
-            ) {
-                pending = true
-                try {
-                    val intent = Intent(
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:${ctx.packageName}")
-                    )
-                    ctx.startActivity(intent)
-                } catch (_: Exception) {}
-            }
-            // 安装未知应用权限
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                !ctx.packageManager.canRequestPackageInstalls()
-            ) {
-                pending = true
-                try {
-                    val intent = Intent(
-                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:${ctx.packageName}")
-                    )
-                    ctx.startActivity(intent)
-                } catch (_: Exception) {}
-            }
-            // 全部完成或无需要引导的权限 → 自动跳转
-            kotlinx.coroutines.delay(if (pending) 2000 else 500)
-            step = 3
-            onProceed()
-        }
-    }
+    val allSpecialGranted = specialPerms.all { it.isGranted() }
+    val allDone = runtimeGranted && allSpecialGranted
 
     Surface(modifier = Modifier.fillMaxSize().systemBarsPadding(),
         color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
-            Spacer(Modifier.height(20.dp))
-            Icon(Icons.Default.CheckCircle, contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(56.dp))
+            Spacer(Modifier.height(12.dp))
+            Icon(if (allDone) Icons.Default.CheckCircle else Icons.Default.Warning,
+                contentDescription = null,
+                tint = if (allDone) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.height(52.dp))
             Text("权限申请", style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
-            Text("极风工具箱需要以下权限以提供完整功能。可点击「全部授予」逐项授权, 也可「稍后」跳过直接进入主页。",
+            Text("授予权限后功能才能完整使用。逐项点击授权, 从设置页返回后这里会自动更新状态。也可以稍后在主页随时授权。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            // 权限说明列表
+            // 运行时权限
             LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    permInfos.forEach { info -> PermInfoRow(info) }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PermStatusRow(
+                        title = "通知 / 媒体读取",
+                        desc = "刷机进度通知、读取图片视频音频用于备份",
+                        granted = runtimeGranted
+                    )
+                    if (!runtimeGranted) {
+                        OutlinedButton(onClick = { requestTick++ },
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text(if (runtimeRequested) "重新授予运行时权限" else "授予运行时权限")
+                        }
+                    }
+                }
+            }
+
+            // 特殊权限 (逐项)
+            specialPerms.forEach { sp ->
+                LiquidGlassCard(modifier = Modifier.fillMaxWidth(), padding = 16.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        PermStatusRow(title = sp.title, desc = sp.purpose, granted = sp.isGranted())
+                        if (!sp.isGranted()) {
+                            Button(
+                                onClick = { sp.grant() },
+                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("去授权", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
 
             Spacer(Modifier.height(4.dp))
+
             Button(
-                onClick = {
-                    if (runtimePerms.isNotEmpty()) {
-                        step = 1
-                        permIndex = 0
-                    } else {
-                        step = 2
-                    }
-                },
+                onClick = onProceed,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("全部授予", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(if (allDone) "全部完成, 进入主页" else "进入主页",
+                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
                 onClick = onProceed,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier.fillMaxWidth().height(46.dp)
             ) {
-                Text("稍后", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("稍后再说", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-private fun PermInfoRow(info: PermInfo) {
+private fun PermStatusRow(title: String, desc: String, granted: Boolean) {
     Row(verticalAlignment = Alignment.Top) {
-        Icon(info.icon, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(22.dp))
+        Icon(
+            if (granted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = if (granted) MaterialTheme.colorScheme.primary
+                   else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.height(22.dp)
+        )
         Spacer(Modifier.width(12.dp))
         Column {
-            Text(info.title, style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-            Text(info.purpose, style = MaterialTheme.typography.bodySmall,
+            Text(title + if (granted) "  ✓ 已授予" else "",
+                style = MaterialTheme.typography.titleSmall,
+                color = if (granted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold)
+            Text(desc, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

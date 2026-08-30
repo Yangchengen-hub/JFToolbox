@@ -10,17 +10,28 @@
     <usb-device class="255" subclass="66" protocol="1" />
     <!-- Fastboot interface (class=0xFF subclass=0x42 protocol=0x03) -->
     <usb-device class="255" subclass="66" protocol="3" />
+    <!-- Qualcomm EDL 9008 (class=0xFF subclass=0x42 protocol=0x00 常见) -->
+    <usb-device vendor-id="1478" product-id="36872" /> <!-- 0x05c6:0x9008 -->
 
     <!-- 常见安卓厂商 ID (USB 插入即触发, 实际 ADB 接口识别在代码层完成) -->
-    <usb-device vendor-id="6353" />  <!-- Google 0x18d1 -->
-    <usb-device vendor-id="10007" /> <!-- 小米 Xiaomi 0x2717 -->
-    <usb-device vendor-id="1256" />  <!-- 三星 Samsung 0x04e8 -->
-    <usb-device vendor-id="8921" />  <!-- OPPO 0x22d9 -->
-    <usb-device vendor-id="11669" /> <!-- vivo 0x2d95 -->
-    <usb-device vendor-id="4817" />  <!-- 华为 Huawei 0x12d1 -->
-    <usb-device vendor-id="1478" />  <!-- 一加 OnePlus / 高通 Qualcomm 0x05c6 -->
-    <usb-device vendor-id="6127" />  <!-- 联想 Lenovo 0x17ef -->
-    <usb-device vendor-id="3725" />  <!-- 联发科 MediaTek 0x0e8d -->
-    <usb-device vendor-id="4046" />  <!-- 索尼 Sony 0x0fce -->
-    <usb-device vendor-id="8888" />  <!-- 摩托罗拉 Motorola 0x22b8 -->
+    <usb-device vendor-id="6353" />   <!-- Google 0x18d1 -->
+    <usb-device vendor-id="10007" />  <!-- 小米 Xiaomi 0x2717 -->
+    <usb-device vendor-id="1256" />   <!-- 三星 Samsung 0x04e8 -->
+    <usb-device vendor-id="8921" />   <!-- OPPO 0x22d9 -->
+    <usb-device vendor-id="11669" />  <!-- vivo 0x2d95 -->
+    <usb-device vendor-id="4817" />   <!-- 华为 Huawei 0x12d1 -->
+    <usb-device vendor-id="1478" />   <!-- 一加 OnePlus / 高通 Qualcomm 0x05c6 -->
+    <usb-device vendor-id="6127" />   <!-- 联想 Lenovo 0x17ef -->
+    <usb-device vendor-id="3725" />   <!-- 联发科 MediaTek 0x0e8d -->
+    <usb-device vendor-id="4046" />   <!-- 索尼 Sony 0x0fce -->
+    <usb-device vendor-id="8888" />   <!-- 摩托罗拉 Motorola 0x22b8 -->
+    <usb-device vendor-id="2998" />   <!-- HTC 0x0bb4 -->
+    <usb-device vendor-id="4100" />   <!-- LG 0x1004 -->
+    <usb-device vendor-id="6610" />   <!-- 中兴 ZTE 0x19d2 -->
+    <usb-device vendor-id="10821" />  <!-- 魅族 Meizu 0x2a45 -->
+    <usb-device vendor-id="11022" />  <!-- Nothing 0x2b0e -->
+    <usb-device vendor-id="11780" />  <!-- realme 0x2e04 -->
+    <usb-device vendor-id="1163" />   <!-- 夏普/富士康 0x0489 -->
+    <usb-device vendor-id="6473" />   <!-- 展锐 Unisoc 0x1949 -->
+    <usb-device vendor-id="9443" />   <!-- OnePlus 补充 0x2a70 -->
 </resources>

@@ -52,9 +52,10 @@ object TerminalEngine {
         appCtx = ctx.applicationContext
         if (initialized) return
         cwd = pickWorkingDir(ctx)
-        // 工作目录若为应用专属外部目录, 预装工具也放其下
-        toolsDir = File(cwd, "bin")
-        Logger.i(TAG, "终端工作目录: $cwd")
+        // 预装工具固定放 /sdcard/JFToolbox/bin (与 deployTools 保持一致)
+        toolsDir = if (Environment.isExternalStorageManager()) File("/sdcard/JFToolbox/bin")
+                   else File(cwd, "JFToolbox/bin")
+        Logger.i(TAG, "终端工作目录: $cwd  工具目录: ${toolsDir.absolutePath}")
         initialized = true
     }
 
@@ -64,12 +65,12 @@ object TerminalEngine {
         toolsDeployed = true
         try {
             val ctx = appCtx ?: return
-            // 工具目录固定放内部存储公共位置; 无全文件权限时退回工作目录/bin
-            val target = if (Environment.isExternalStorageManager()) File("/sdcard/JFToolbox/bin")
-                         else File(cwd, "bin")
-            toolsDir = target
+            val target = toolsDir
             runCatching { target.mkdirs() }
-            if (!target.exists() || !target.canWrite()) return
+            if (!target.exists() || !target.canWrite()) {
+                Logger.w(TAG, "预装工具目录不可写: ${target.absolutePath}")
+                return
+            }
             val script = File(target, "jf_tools.sh")
             ctx.assets.open("jf_tools.sh").use { input ->
                 script.outputStream().use { input.copyTo(it) }

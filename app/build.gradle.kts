@@ -11,8 +11,8 @@ android {
         applicationId = "com.jifeng.toolbox"
         minSdk = 21
         targetSdk = 34
-        versionCode = 210
-        versionName = "2.1.0"
+        versionCode = 211
+        versionName = "2.1.1"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
         }
